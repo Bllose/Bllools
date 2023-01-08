@@ -1,4 +1,5 @@
 import logging
+import os
 
 
 class Individual:
@@ -7,29 +8,44 @@ class Individual:
         独立的个体
         key: id
         """
-        self.key = None
-        self.gender = None
-        self.name = None
+        self._key = None
+        self._gender = None
+        self._name = None
 
         """
         历史记录
         """
-        self.history = None
+        self._history = None
 
     def set_key(self, key):
-        self.key = key
+        self._key = key
         return self
 
+    @property
+    def gender(self):
+        return self._gender
+
+    @gender.setter
+    def gender(self, gender):
+        self.set_gender(gender)
+
+    @gender.getter
+    def gender(self):
+        return self._gender
+
     def set_gender(self, gender):
-        self.gender = gender
+        if gender == '男' or gender == 'male' or gender == 'man':
+            self._gender = 1
+        else:
+            self._gender = 0
         return self
 
     def set_name(self, name):
-        self.name = name
+        self._name = name
         return self
 
     def set_history(self, history):
-        self.history = history
+        self._history = history
         return self
 
 
@@ -64,32 +80,64 @@ class OriginData:
         self._sheet = None
         self._config = None
 
-    def path(self, path):
+    def set_path(self, path):
         self._path = path
         return self
 
-    def type(self, type):
+    def set_type(self, type):
         self._type = type
         return self
 
-    def file_name(self, name):
+    def set_file_name(self, name):
         self._file_name = name
         return self
 
-    def sheet_name(self, sheet):
+    def set_sheet_name(self, sheet):
         self._sheet = sheet
         return self
 
     def load(self):
+        """
+        加载 excel, 将数据装载到 individual, group 对象中
+        """
         if self._path is None or self._file_name is None or self._config is None:
             logging.error()
 
         from openpyxl import load_workbook
-        import os
         # 加载工作簿
         wb = load_workbook(self._path + os.sep + self._file_name)
         # 获取sheet页
         ws = wb[self._sheet]
+
+        '''
+        从文件中将数据提取出来
+        '''
+        maxRow = ws.max_row
+        maxColumn = ws.max_column
+
+        keyColumn = ws[self._config.key]
+        nameColumn = ws[self._config.name]
+        genderColumn = ws[self._config.gender]
+        col_list = self._config.datas
+        datasList = []
+        for cur in col_list:
+            curColumn = ws[cur]
+            datasList.append(curColumn)
+
+        groups = []
+        for i in range(1, maxRow):
+            dataList = []
+            for datas in datasList:
+                dataList.append(datas[i].value)
+
+            individual = Individual()
+            individual.set_key(keyColumn[i].value).set_name(nameColumn[i].value).set_gender(genderColumn[i].value).set_history(dataList)
+
+            group = Group()
+            group.individuals = individual
+            groups.append(group)
+
+
 
     def config(self):
         if self._config is None:
@@ -114,19 +162,67 @@ class OriginData:
             self._datas = []
             self._header = True
 
+        @property
+        def key(self):
+            return self._key
+
+        @key.setter
         def key(self, column):
+            self._key = column
+
+        @key.getter
+        def key(self):
+            return self._key
+
+        def set_key(self, column):
             self._key = column
             return self
 
+        @property
+        def name(self):
+            return self._name
+
+        @name.setter
         def name(self, column):
+            self._name = column
+
+        @name.getter
+        def name(self):
+            return self._name
+
+        def set_name(self, column):
             self._name = column
             return self
 
+        @property
+        def gender(self):
+            return self._gender
+
+        @gender.setter
         def gender(self, column):
+            self._gender = column
+
+        @gender.getter
+        def gender(self):
+            return self._gender
+
+        def set_gender(self, column):
             self._gender = column
             return self
 
-        def datas(self, columns: str):
+        @property
+        def datas(self):
+            return self._datas
+
+        @datas.getter
+        def datas(self):
+            return self._datas
+
+        @datas.setter
+        def datas(self, columns):
+            self.set_datas(columns)
+
+        def set_datas(self, columns: str):
             """
             定义数据所属列
             支持范围输入，通过 - 或者 ~ 进行连接
@@ -153,16 +249,12 @@ class OriginData:
 
 if __name__ == '__main__':
     od = OriginData()
-    od.path(r'D:\workplace\temp\bllools\resources')\
-        .file_name(r'HIT22VCteam.xlsx')\
-        .sheet_name(r'Sheet1')
-    od.config().key(r'B').name(r'C').gender(r'D').datas(r'E-J')
+    od.set_path(os.path.abspath('../../resources'))\
+        .set_file_name(r'HIT22VCteam.xlsx')\
+        .set_sheet_name(r'Sheet1')
+    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
     od.load()
 
-    student = Individual()
 
-    team = Group()
-
-    team.add(student)
 
 

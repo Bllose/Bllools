@@ -42,4 +42,4 @@ def get_column_list(start: str, end: str) -> list:
     if begin == -1 or stop == -1:
         return []
 
-    return all_columns[begin, stop]
+    return all_columns[begin: stop]
