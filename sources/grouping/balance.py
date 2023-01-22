@@ -301,13 +301,39 @@ class OriginData:
             return self
 
 
+class Grouping:
+    def __init__(self, groupList: list, decay: float = 0.7):
+        """
+        分组方法
+        @param groupList: 待分组的原始数据，由 group 对象构成的列表
+        @param decay: 衰减因子，配对时历史记录的衰减速度
+        """
+        self.originalDatas = groupList
+        self.decayFactor = decay
+        self.manList = []
+        self.womanList = []
+        for group in groupList:
+            if group.individuals[0].gender == 1:
+                self.manList.append(group)
+            else:
+                self.womanList.append(group)
+
+    def process(self, order: int):
+        """
+        @param order: 分组数量
+
+        分组的执行逻辑
+        """
+
 if __name__ == '__main__':
     od = OriginData()
     od.set_path(os.path.abspath('../../resources'))\
         .set_file_name(r'HIT22VCteam.xlsx')\
         .set_sheet_name(r'Sheet1')
     od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
-    od.load()
+    originalDatasList = od.load()
+    grouping = Grouping(originalDatasList)
+    grouping.process()
 
 
 
