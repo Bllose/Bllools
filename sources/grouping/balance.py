@@ -3,6 +3,9 @@ import os
 
 
 class Individual:
+    def __repr__(self):
+        return '{}-{}:{}'.format(self._key, self._name, self.getGenderCN())
+
     def __init__(self):
         """
         独立的个体
@@ -40,9 +43,24 @@ class Individual:
             self._gender = 0
         return self
 
+    def getGenderCN(self):
+        return '男' if self._gender == 1 else '女'
+
     def set_name(self, name):
         self._name = name
         return self
+
+    @property
+    def history(self):
+        return self._history
+
+    @history.getter
+    def history(self):
+        return self._history
+
+    @history.setter
+    def history(self, historyList):
+        self.set_history(historyList)
 
     def set_history(self, history):
         self._history = history
@@ -50,30 +68,66 @@ class Individual:
 
 
 class Group:
+    def __repr__(self):
+        return '[{} : {}]'.format(self.male, self.female)
+
     def __init__(self):
         """
         队伍
         """
-        self.individuals = []
+        self._individuals = []
+        self.male = 0
+        self.female = 0
+        self.group_history = []
 
     @property
     def individuals(self):
-        return self.individuals
+        return self._individuals
 
     @individuals.setter
     def individuals(self, target):
+        """
+        向队伍中添加成员， 需要同步更新：
+        1、性别数量
+        2、总历史记录更新
+        """
         if isinstance(target, list):
-            self.individuals.extend(target)
+            if len(target) > 0:
+                self._individuals.extend(target)
+                for cur in target:
+                    self.recordGender(cur.gender)
+                    self.recordHistory(cur.history)
         else:
-            self.individuals.append(target)
+            self._individuals.append(target)
+            self.recordGender(target.gender)
+            self.recordHistory(target.history)
+
+    def recordHistory(self, history: list):
+        if len(self.group_history) < 1:
+            for cur in history:
+                self.group_history.extend([cur])
+        else:
+            for index in range(self.group_history):
+                self.group_history[index].append(history[index])
+
+    def recordGender(self, gender: int):
+        if gender == 1:
+            self.male += 1
+        else:
+            self.female += 1
 
     @individuals.getter
     def individuals(self):
-        return self.individuals
+        return self._individuals
 
 
 class OriginData:
     def __init__(self):
+        """
+        数据源对象
+        本类的任务就是将数据源加载为 group对象; individual 对象。
+        最终以列表的形式进行返回
+        """
         self._path = None
         self._type = None
         self._file_name = None
@@ -96,7 +150,7 @@ class OriginData:
         self._sheet = sheet
         return self
 
-    def load(self):
+    def load(self) -> list:
         """
         加载 excel, 将数据装载到 individual, group 对象中
         """
@@ -113,7 +167,7 @@ class OriginData:
         从文件中将数据提取出来
         '''
         maxRow = ws.max_row
-        maxColumn = ws.max_column
+        # maxColumn = ws.max_column
 
         keyColumn = ws[self._config.key]
         nameColumn = ws[self._config.name]
@@ -137,7 +191,7 @@ class OriginData:
             group.individuals = individual
             groups.append(group)
 
-
+        return groups
 
     def config(self):
         if self._config is None:
