@@ -1,5 +1,5 @@
 import logging
-import os
+import os, random
 
 
 class Individual:
@@ -324,6 +324,65 @@ class Grouping:
 
         分组的执行逻辑
         """
+        manList, restManList = self.randomDrawing(self.manList, order)
+        womenList, restWomenList = self.randomDrawing(self.womanList, order)
+
+        # 合并 manList and womanList
+        self.straightMerge(manList, order)
+        self.straightMerge(womenList, order)
+        # manList.extend(womenList)
+        # self.straightMerge(manList, order)
+
+        # rest 合入主列表
+
+    def straightMerge(self, target: list, order: int):
+        """
+        目标队列按照衰减因子进行配对
+        相似程度最低的一对相互匹配
+        """
+        if target is None or len(target) < 1:
+            return
+
+        # 首先选取随机元素作为队伍选择基础
+        tempList = []
+        tempLen = 0
+        while tempLen < order:
+            chose_index = random.randint(0, len(target) - 1)
+            tempList.append(target.pop(chose_index))
+            tempLen = len(tempList)
+
+        # 根据队伍基础元素，计算关联关系， 选择最低关系系数组队
+        for index in range(len(target)):
+            cur = order % index
+
+
+    def randomDrawing(self, target: list, order: int) -> tuple:
+        """
+        随机从列表 #target 中抽取元素， 最终生成一个初步合并的队列和一个剩余队列
+        @param target: 待处理列表
+        @param order: 每组人数量
+        """
+        orderLen = len(target)
+        restLen = orderLen % order
+        if restLen > 0:
+            # 当需要将多余列表单独分出来时
+            # 通过随机数确定去除元素
+            # 将随机取出人员单独保存
+            restList = []
+            targetLen = orderLen - restLen
+
+            while orderLen > targetLen:
+                chose_index = random.randint(0, orderLen - 1)
+                restList.append(target.pop(chose_index))
+                orderLen = len(target)
+            return target, restList
+        if orderLen >= order:
+            # 如果人员数量不需要额外保存， 则直接返回对象列表， 剩余列表则为空列表
+            return target, []
+        else:
+            # 如果总数量还不够一次完整分组， 则将所有人作为剩余部分进行返回
+            return [], target
+
 
 if __name__ == '__main__':
     od = OriginData()
@@ -333,7 +392,7 @@ if __name__ == '__main__':
     od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
     originalDatasList = od.load()
     grouping = Grouping(originalDatasList)
-    grouping.process()
+    finalList = grouping.process()
 
 
 
