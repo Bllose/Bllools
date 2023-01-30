@@ -1,5 +1,5 @@
 import logging
-import os, random
+import os, random, math
 
 
 class Individual:
@@ -60,10 +60,15 @@ class Individual:
 
     @history.setter
     def history(self, historyList):
-        self.set_history(historyList)
+        """
+        个人的历史记录肯定是单个数值
+        但是我们后续使用的都是列表，即每个组有多个人
+        所以每个人的记录也要记录为有一个元素的列表
+        """
+        self._history = [[x, ] for x in historyList]
 
     def set_history(self, history):
-        self._history = history
+        self.history = history
         return self
 
 
@@ -79,6 +84,45 @@ class Group:
         self.male = 0
         self.female = 0
         self.group_history = []
+
+    def absorbTheLowest(self, groupList: list, decay: int) -> int:
+        """
+        吸收关联关系最浅的队伍
+        @param groupList: 获取最低
+        @param decay: 衰减系数
+        """
+        recorder = [0, 99999]
+        decayList = [math.pow(decay, x) for x in range(len(groupList))]
+        decayList.reverse()
+        for index in range(len(groupList)):
+            curRelationRate = self.compareTo(groupList[index], decayList)
+            if curRelationRate < recorder[1]:
+                logging.debug(f"发现第{index}队伍的关系度更低:[{recorder[1]}] -> [{curRelationRate}]")
+                recorder[0] = index
+                recorder[1] = curRelationRate
+        logging.debug(f'最终确定吸收第{recorder[0]}支队伍，关系度为{recorder[1]}')
+        self.individuals = groupList[recorder[0]]
+        groupList.remove(recorder[0])
+
+    def compareTo(self, target, decayList: int) -> float:
+        """
+        与另一个组进行比较，计算关系值
+        decayList 的长度与 目标 target 下 history的长度保持一致
+        @param target: 比较的另一个Group对象
+        @param decay: 衰减系数
+        """
+        repeats = 0
+        targetHistory = target.group_history
+        for index in range(len(self.group_history) - 1, 0, -1):
+            curHistory = self.group_history[index]
+            curHistory.extend(targetHistory[index]) # 将当前批次的记录混合到一起， 进行重复量统计
+            temSet = set(curHistory)
+            '''
+            利用 set 的特性， 自动去重
+            使用可能拥有重复元素的列表长度减去去重后的长度， 得到重复的总次数
+            '''
+            repeats += (len(curHistory) - temSet) * decayList[index] # 当前轮次重复次数乘以当前轮次的衰减系数，得到当前的关系度
+        return repeats
 
     @property
     def individuals(self):
@@ -104,11 +148,14 @@ class Group:
 
     def recordHistory(self, history: list):
         if len(self.group_history) < 1:
+            # 如果是第一次记录历史记录
+            # 则当前历史为空，长度为0
             for cur in history:
-                self.group_history.extend([cur])
+                self.group_history.append(cur)
         else:
             for index in range(self.group_history):
-                self.group_history[index].append(history[index])
+                # 由于已经有历史记录了， 那么新增的历史记录应该加入原有记录中
+                self.group_history[index].extend(history[index])
 
     def recordGender(self, gender: int):
         if gender == 1:
@@ -185,7 +232,8 @@ class OriginData:
                 dataList.append(datas[i].value)
 
             individual = Individual()
-            individual.set_key(keyColumn[i].value).set_name(nameColumn[i].value).set_gender(genderColumn[i].value).set_history(dataList)
+            individual.set_key(keyColumn[i].value).set_name(nameColumn[i].value).set_gender(
+                genderColumn[i].value).set_history(dataList)
 
             group = Group()
             group.individuals = individual
@@ -352,9 +400,12 @@ class Grouping:
             tempLen = len(tempList)
 
         # 根据队伍基础元素，计算关联关系， 选择最低关系系数组队
-        for index in range(len(target)):
-            cur = order % index
-
+        index = 0
+        while len(target) > 0:
+            curIndex = index % order  # 如果分7组，则0~6循环
+            cur = tempList[curIndex]
+            cur.absorbTheLowest(groupList=target, decay=self.decayFactor)
+            index += 1
 
     def randomDrawing(self, target: list, order: int) -> tuple:
         """
@@ -386,14 +437,10 @@ class Grouping:
 
 if __name__ == '__main__':
     od = OriginData()
-    od.set_path(os.path.abspath('../../resources'))\
-        .set_file_name(r'HIT22VCteam.xlsx')\
+    od.set_path(os.path.abspath('../../resources')) \
+        .set_file_name(r'HIT22VCteam.xlsx') \
         .set_sheet_name(r'Sheet1')
     od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
     originalDatasList = od.load()
     grouping = Grouping(originalDatasList)
-    finalList = grouping.process()
-
-
-
-
+    finalList = grouping.process(order=7)
