@@ -1,5 +1,7 @@
 import logging
-import os, random, math
+import math
+import os
+import random
 
 
 class Individual:
@@ -23,6 +25,14 @@ class Individual:
     def set_key(self, key):
         self._key = key
         return self
+
+    @property
+    def key(self):
+        return self._key
+
+    @key.getter
+    def key(self):
+        return self._key
 
     @property
     def gender(self):
@@ -51,6 +61,14 @@ class Individual:
         return self
 
     @property
+    def name(self):
+        return self._name
+
+    @name.getter
+    def name(self):
+        return self._name
+
+    @property
     def history(self):
         return self._history
 
@@ -73,9 +91,6 @@ class Individual:
 
 
 class Group:
-    def __repr__(self):
-        return '[{} : {}]'.format(self.male, self.female)
-
     def __init__(self):
         """
         队伍
@@ -84,6 +99,15 @@ class Group:
         self.male = 0
         self.female = 0
         self.group_history = []
+
+    def __repr__(self):
+        return '[{} : {}]'.format(self.male, self.female)
+
+    def toString(self):
+        toShowList = []
+        for cur in self._individuals:
+            toShowList.append(f'{cur.key}\t{cur.name}:{cur.getGenderCN()}')
+        print('\r\n'.join(toShowList))
 
     def absorbTheLowest(self, groupList: list, decayList: list) -> int:
         """
@@ -148,6 +172,10 @@ class Group:
             self._individuals.append(target)
             self.recordGender(target.gender)
             self.recordHistory(target.history)
+
+    @individuals.getter
+    def individuals(self):
+        return self._individuals
 
     def recordHistory(self, history: list):
         if len(self.group_history) < 1:
@@ -411,7 +439,9 @@ def randomDrawing(target: list, order: int) -> tuple:
 
 
 class Grouping:
-    def __init__(self, groupList: list, decay: float = 0.7):
+    def __init__(self,
+                 groupList: list,
+                 decay: float = 0.7):
         """
         分组方法
         @param groupList: 待分组的原始数据，由 group 对象构成的列表
@@ -421,6 +451,7 @@ class Grouping:
         self.decayFactor = decay
         self.manList = []
         self.womanList = []
+        self.finalList = []
         for group in groupList:
             if group.individuals[0].gender == 1:
                 self.manList.append(group)
@@ -429,9 +460,8 @@ class Grouping:
 
     def process(self, order: int):
         """
-        @param order: 分组数量
-
         分组的执行逻辑
+        @param order: 分组数量
         """
         decayList = [math.pow(self.decayFactor, x) for x in range(len(self.manList[0].group_history))]
         decayList.reverse()
@@ -443,13 +473,53 @@ class Grouping:
         selfMerge(manList, order, decayList)
         selfMerge(womenList, order, decayList)
 
+        # 以 manList作为基准，将 womanList 合入
         for target in manList:
             target.absorbTheLowest(groupList=womenList, decayList=decayList)
-        # manList.extend(womenList)
-        # self.straightMerge(manList, order)
 
-        # rest 合入主列表
-        print('DONE!')
+        # 将剩余的男女队伍逐一合入主列表
+        restManList.extend(restWomenList)
+        index = 0
+        while restManList:
+            cur = index % order
+            manList[cur].absorbTheLowest(groupList=restManList, decayList=decayList)
+            index += 1
+
+        self.finalList = self.manList.copy()
+        return self
+
+    def showTheLastGroup(self):
+        """
+        按照组的队伍输出每组人员
+        :return:
+        """
+        print("*******************")
+        print("*******************")
+        index = 0
+        for curGroup in self.finalList:
+            curGroup.toString()
+            index += 1
+            if index < len(self.finalList):
+                print("===================")
+        print("*******************")
+        print("*******************")
+        return self
+
+    def showTheLastOrder(self):
+        """
+        按班号输出最后排序
+        :return:
+        """
+        orderList = [0 for i in range(len(self.originalDatas))]
+        index = 1
+        for curGroup in self.finalList:
+            individuals = curGroup.individuals
+            for individual in individuals:
+                orderList[individual.key - 1] = index
+            index += 1
+        for position in orderList:
+            print(str(position))
+        return self
 
 
 if __name__ == '__main__':
@@ -458,6 +528,5 @@ if __name__ == '__main__':
         .set_file_name(r'HIT22VCteam.xlsx') \
         .set_sheet_name(r'Sheet1')
     od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
-    originalDatasList = od.load()
-    grouping = Grouping(originalDatasList)
-    finalList = grouping.process(order=7)
+    grouping = Grouping(od.load())
+    grouping.process(order=7).showTheLastGroup().showTheLastOrder()

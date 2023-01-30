@@ -1,2 +1,2 @@
 .idea
-sources/helper/__pycache__/
+**/*/__pycache__/
