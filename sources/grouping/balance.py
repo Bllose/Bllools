@@ -85,24 +85,27 @@ class Group:
         self.female = 0
         self.group_history = []
 
-    def absorbTheLowest(self, groupList: list, decay: int) -> int:
+    def absorbTheLowest(self, groupList: list, decayList: list) -> int:
         """
         吸收关联关系最浅的队伍
         @param groupList: 获取最低
-        @param decay: 衰减系数
+        @param decayList: 衰减系数列表
         """
         recorder = [0, 99999]
-        decayList = [math.pow(decay, x) for x in range(len(groupList))]
-        decayList.reverse()
         for index in range(len(groupList)):
             curRelationRate = self.compareTo(groupList[index], decayList)
-            if curRelationRate < recorder[1]:
+            if curRelationRate == 0.0:
+                logging.debug(f'发现关系度为0的队伍, 直接合并！')
+                recorder[0] = index
+                recorder[1] = 0.0
+                break
+            elif curRelationRate < recorder[1]:
                 logging.debug(f"发现第{index}队伍的关系度更低:[{recorder[1]}] -> [{curRelationRate}]")
                 recorder[0] = index
                 recorder[1] = curRelationRate
         logging.debug(f'最终确定吸收第{recorder[0]}支队伍，关系度为{recorder[1]}')
-        self.individuals = groupList[recorder[0]]
-        groupList.remove(recorder[0])
+        self.individuals = groupList[recorder[0]].individuals
+        groupList.remove(groupList[recorder[0]])
 
     def compareTo(self, target, decayList: int) -> float:
         """
@@ -113,15 +116,15 @@ class Group:
         """
         repeats = 0
         targetHistory = target.group_history
-        for index in range(len(self.group_history) - 1, 0, -1):
-            curHistory = self.group_history[index]
+        for index in range(len(self.group_history) - 1, -1, -1):
+            curHistory = self.group_history[index].copy()
             curHistory.extend(targetHistory[index]) # 将当前批次的记录混合到一起， 进行重复量统计
             temSet = set(curHistory)
             '''
             利用 set 的特性， 自动去重
             使用可能拥有重复元素的列表长度减去去重后的长度， 得到重复的总次数
             '''
-            repeats += (len(curHistory) - temSet) * decayList[index] # 当前轮次重复次数乘以当前轮次的衰减系数，得到当前的关系度
+            repeats += (len(curHistory) - len(temSet)) * decayList[index] # 当前轮次重复次数乘以当前轮次的衰减系数，得到当前的关系度
         return repeats
 
     @property
@@ -153,7 +156,7 @@ class Group:
             for cur in history:
                 self.group_history.append(cur)
         else:
-            for index in range(self.group_history):
+            for index in range(len(self.group_history)):
                 # 由于已经有历史记录了， 那么新增的历史记录应该加入原有记录中
                 self.group_history[index].extend(history[index])
 
@@ -349,6 +352,64 @@ class OriginData:
             return self
 
 
+def selfMerge(target: list, order: int, decayList: list):
+    """
+    队列列表target自己内部进行匹配，内部合并。
+    最终合并成order个组合
+    @param target: 待合并的队列
+    @param order: 合并最终目标
+    @param decayList: 衰减列表
+    """
+    if target is None or len(target) < 1:
+        return
+
+    # 首先选取随机元素作为队伍选择基础
+    tempList = []
+    tempLen = 0
+    while tempLen < order:
+        chose_index = random.randint(0, len(target) - 1)
+        tempList.append(target.pop(chose_index))
+        tempLen = len(tempList)
+
+    # 根据队伍基础元素，计算关联关系， 选择最低关系系数组队
+    index = 0
+
+    while len(target) > 0:
+        curIndex = index % order  # 如果分7组，则0~6循环
+        cur = tempList[curIndex]
+        cur.absorbTheLowest(groupList=target, decayList=decayList)
+        index += 1
+    target.extend(tempList)
+
+
+def randomDrawing(target: list, order: int) -> tuple:
+    """
+    随机从列表 #target 中抽取元素， 最终生成一个初步合并的队列和一个剩余队列
+    @param target: 待处理列表
+    @param order: 每组人数量
+    """
+    orderLen = len(target)
+    restLen = orderLen % order
+    if restLen > 0:
+        # 当需要将多余列表单独分出来时
+        # 通过随机数确定去除元素
+        # 将随机取出人员单独保存
+        restList = []
+        targetLen = orderLen - restLen
+
+        while orderLen > targetLen:
+            chose_index = random.randint(0, orderLen - 1)
+            restList.append(target.pop(chose_index))
+            orderLen = len(target)
+        return target, restList
+    if orderLen >= order:
+        # 如果人员数量不需要额外保存， 则直接返回对象列表， 剩余列表则为空列表
+        return target, []
+    else:
+        # 如果总数量还不够一次完整分组， 则将所有人作为剩余部分进行返回
+        return [], target
+
+
 class Grouping:
     def __init__(self, groupList: list, decay: float = 0.7):
         """
@@ -372,67 +433,23 @@ class Grouping:
 
         分组的执行逻辑
         """
-        manList, restManList = self.randomDrawing(self.manList, order)
-        womenList, restWomenList = self.randomDrawing(self.womanList, order)
+        decayList = [math.pow(self.decayFactor, x) for x in range(len(self.manList[0].group_history))]
+        decayList.reverse()
+
+        manList, restManList = randomDrawing(self.manList, order)
+        womenList, restWomenList = randomDrawing(self.womanList, order)
 
         # 合并 manList and womanList
-        self.straightMerge(manList, order)
-        self.straightMerge(womenList, order)
+        selfMerge(manList, order, decayList)
+        selfMerge(womenList, order, decayList)
+
+        for target in manList:
+            target.absorbTheLowest(groupList=womenList, decayList=decayList)
         # manList.extend(womenList)
         # self.straightMerge(manList, order)
 
         # rest 合入主列表
-
-    def straightMerge(self, target: list, order: int):
-        """
-        目标队列按照衰减因子进行配对
-        相似程度最低的一对相互匹配
-        """
-        if target is None or len(target) < 1:
-            return
-
-        # 首先选取随机元素作为队伍选择基础
-        tempList = []
-        tempLen = 0
-        while tempLen < order:
-            chose_index = random.randint(0, len(target) - 1)
-            tempList.append(target.pop(chose_index))
-            tempLen = len(tempList)
-
-        # 根据队伍基础元素，计算关联关系， 选择最低关系系数组队
-        index = 0
-        while len(target) > 0:
-            curIndex = index % order  # 如果分7组，则0~6循环
-            cur = tempList[curIndex]
-            cur.absorbTheLowest(groupList=target, decay=self.decayFactor)
-            index += 1
-
-    def randomDrawing(self, target: list, order: int) -> tuple:
-        """
-        随机从列表 #target 中抽取元素， 最终生成一个初步合并的队列和一个剩余队列
-        @param target: 待处理列表
-        @param order: 每组人数量
-        """
-        orderLen = len(target)
-        restLen = orderLen % order
-        if restLen > 0:
-            # 当需要将多余列表单独分出来时
-            # 通过随机数确定去除元素
-            # 将随机取出人员单独保存
-            restList = []
-            targetLen = orderLen - restLen
-
-            while orderLen > targetLen:
-                chose_index = random.randint(0, orderLen - 1)
-                restList.append(target.pop(chose_index))
-                orderLen = len(target)
-            return target, restList
-        if orderLen >= order:
-            # 如果人员数量不需要额外保存， 则直接返回对象列表， 剩余列表则为空列表
-            return target, []
-        else:
-            # 如果总数量还不够一次完整分组， 则将所有人作为剩余部分进行返回
-            return [], target
+        print('DONE!')
 
 
 if __name__ == '__main__':
