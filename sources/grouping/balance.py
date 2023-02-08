@@ -6,7 +6,7 @@ import random
 
 class Individual:
     def __repr__(self):
-        return '{}-{}:{}'.format(self._key, self._name, self.getGenderCN())
+        return '{}-{}:{}-{}'.format(self._key, self._name, self.getGenderCN(), self.leaderCounter)
 
     def __init__(self):
         """
@@ -21,6 +21,31 @@ class Individual:
         历史记录
         """
         self._history = None
+        self._leader_history = None
+        self.leaderCounter = 0
+
+    def leaderScore(self, decayList) -> float:
+        '''
+        计算组长得分， 每一期得分根据衰减值进行递减后想加
+        :param decayList: 衰减列表
+        :return: 组长统计得分
+        '''
+        tempList = self._leader_history.copy()
+        tempList.reverse()
+        decayTempList = decayList.copy()
+        decayTempList.reverse()
+        for index in range(len(tempList)):
+            if tempList[index] == 1:
+                self.leaderCounter += decayTempList[index]
+        return self.leaderCounter
+
+    @property
+    def leader_history(self):
+        return self._leader_history
+
+    @leader_history.setter
+    def leader_history(self, lhistory: list):
+        self._leader_history = lhistory.copy()
 
     def set_key(self, key):
         self._key = key
@@ -86,9 +111,12 @@ class Individual:
         self._history = [[x, ] for x in historyList]
 
     def set_history(self, history):
-        self.history = history
+        self.history = history.copy()
         return self
 
+    def set_leader_history(self, lhistory: list):
+        self._leader_history = lhistory.copy()
+        return self
 
 class Group:
     def __init__(self):
@@ -99,6 +127,7 @@ class Group:
         self.male = 0
         self.female = 0
         self.group_history = []
+        self.leader = None # 本小组组长
 
     def __repr__(self):
         return '[{} : {}]'.format(self.male, self.female)
@@ -106,8 +135,22 @@ class Group:
     def toString(self):
         toShowList = []
         for cur in self._individuals:
-            toShowList.append(f'{cur.key}\t{cur.name}:{cur.getGenderCN()}')
+            toShowList.append(f'{cur.key}\t{cur.name}:{cur.getGenderCN()}\t{cur.leaderCounter}')
         print('\r\n'.join(toShowList))
+
+    def choseLeader(self, decayList: list):
+        """
+        根据衰减因子得到推荐组长
+        :param decayList: 衰减列表
+        :return:
+        """
+        curScore = 999999
+
+        for person in self._individuals:
+            score = person.leaderScore(decayList)
+            if score < curScore:
+                curScore = score
+                self.leader = person
 
     def absorbTheLowest(self, groupList: list, decayList: list) -> int:
         """
@@ -258,13 +301,24 @@ class OriginData:
 
         groups = []
         for i in range(1, maxRow):
+            '''
+            以行为维度，即一次处理一个人的所有信息
+            首先是每次所分配组的信息
+            其次是统计作为组长的信息
+            '''
             dataList = []
+            leaderList = []
             for datas in datasList:
                 dataList.append(datas[i].value)
+                leaderList.append(0 if datas[i].fill.fgColor.rgb == '00000000' else 1)
 
             individual = Individual()
-            individual.set_key(keyColumn[i].value).set_name(nameColumn[i].value).set_gender(
-                genderColumn[i].value).set_history(dataList)
+            individual\
+                .set_key(keyColumn[i].value)\
+                .set_name(nameColumn[i].value)\
+                .set_gender(genderColumn[i].value)\
+                .set_history(dataList)\
+                .set_leader_history(leaderList)
 
             group = Group()
             group.individuals = individual
@@ -486,6 +540,9 @@ class Grouping:
             index += 1
 
         self.finalList = self.manList.copy()
+
+        for team in self.finalList:
+            team.choseLeader(decayList)
         return self
 
     def showTheLastGroup(self):
@@ -526,7 +583,7 @@ if __name__ == '__main__':
     od = OriginData()
     od.set_path(os.path.abspath('../../resources')) \
         .set_file_name(r'HIT22VCteam.xlsx') \
-        .set_sheet_name(r'Sheet1')
-    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-J')
+        .set_sheet_name(r'handler')
+    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-I')
     grouping = Grouping(od.load())
     grouping.process(order=7).showTheLastGroup().showTheLastOrder()
