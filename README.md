@@ -22,3 +22,7 @@
     # process 正式开始分组, 其中参数order指定本次分组的组数
     grouping.process(order=7).showTheLastGroup().showTheLastOrder()
 ```
+
+
+
+https://www.chia.net/2023/03/19/introducing-chia-blockchain-database-bittorent-checkpoints/
