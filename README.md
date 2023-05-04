@@ -25,6 +25,11 @@
 
 
 ```
+./chia_plot -n 1 -r 16 -u 128 -v 128 -t /path/to/temporary/dir -2 /path/to/final/dir -d 0 -p <pool_pubkey> -f <farmer_pubkey> -c <contract_pubkey>
+-p参数需要设置，指定矿池的公钥。
+-f参数需要设置，指定你的Chia钱包地址作为矿工公钥，用于接收挖到的Chia币。
+-c参数也是需要设置的。该参数指定矿池与矿工之间的合同公钥，用于确保矿工按照矿池的要求进行挖矿，同时还可用于统计挖矿的算力和奖励的分配。
+
 https://www.chia.net/2023/03/19/introducing-chia-blockchain-database-bittorent-checkpoints/
 
 chia_plot -n 1 -c xch1xlsrr8nzlvs4gg5vyv2wa539vjv92967d07wrgy7pf9ylrewjdusdqcgj0 -t /tempDir/25 -2 /tempDir2/75 -d /finaldir
