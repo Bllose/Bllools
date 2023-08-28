@@ -34,6 +34,8 @@ class BlloseMedia():
             if self.file_type == 'mp3':
                 self.mp3 = AudioSegment.from_mp3(self.abspath)
 
+        self.cutting = None
+
     def extract_audio(self, newPath: str):
         """
         从视频中提取音频
@@ -49,15 +51,21 @@ class BlloseMedia():
             subprocess.call(['ffmpeg', '-i', self.abspath, '-codec', 'copy', self.abspath + '.mp4'])
 
     def cut(self, start, end, newPath):
+        intStart = 0
+        intEnd = 0
         if ':' in start:
             holder = start.split(':')
             if len(holder) == 2:
-                start = holder[0] * 60 + holder[1]
+                intStart = int(holder[0]) * 60 + int(holder[1])
+        else:
+            intStart = int(start)
 
         if ':' in end:
             holder = end.split(':')
             if len(holder) == 2:
-                end = holder[0] * 60 + holder[1]
+                intEnd = int(holder[0]) * 60 + int(holder[1])
+        else:
+            intEnd = int(end)
 
         root = self.cur_root + os.sep + self.file_name
         if not os.path.exists(root):
@@ -65,10 +73,16 @@ class BlloseMedia():
 
         import uuid
         newFileName = root + os.sep + self.file_name + str(uuid.uuid1()).replace('-', '') + '.' + self.file_type
-        self.mp3[start * 1000: end * 1000].export(newFileName, format=self.file_type)
+        self.mp3[intStart * 1000: intEnd * 1000].export(newFileName, format=self.file_type)
         logging.info(f'{newFileName} has been done!')
+        self.cutting = newFileName
+
+    def continueCutting(self):
+        pass
+
 
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     t = r'D:\CET\202303CET4\Listening.mp3'
     # video = VideoFileClip(t).subclip(0,5.5)
     # video.audio.write_audiofile(f'{t}.mp3')
