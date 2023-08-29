@@ -8,6 +8,7 @@ import os
 MOVIE = ['mp4', 'avi']
 AUDIO = ['mp3']
 
+
 class BlloseMedia():
 
     def __init__(self, absPath):
@@ -34,7 +35,12 @@ class BlloseMedia():
             if self.file_type == 'mp3':
                 self.mp3 = AudioSegment.from_mp3(self.abspath)
 
+        """
+        持续性编辑参数
+        """
         self.cutting = None
+        self.left = 0
+        self.right = 0
 
     def extract_audio(self, newPath: str):
         """
@@ -50,7 +56,7 @@ class BlloseMedia():
         if self.abspath.endswith(".mkv"):
             subprocess.call(['ffmpeg', '-i', self.abspath, '-codec', 'copy', self.abspath + '.mp4'])
 
-    def cut(self, start, end, newPath):
+    def cut(self, start, end, newPath = None):
         intStart = 0
         intEnd = 0
         if ':' in start:
@@ -72,22 +78,59 @@ class BlloseMedia():
             os.makedirs(root)
 
         import uuid
-        newFileName = root + os.sep + self.file_name + str(uuid.uuid1()).replace('-', '') + '.' + self.file_type
+        if newPath:
+            newFileName = newPath + os.sep + self.file_name + str(uuid.uuid1()).replace('-', '') + '.' + self.file_type
+        else:
+            newFileName = root + os.sep + self.file_name + str(uuid.uuid1()).replace('-', '') + '.' + self.file_type
+        self.left = intStart
+        self.right = intEnd
         self.mp3[intStart * 1000: intEnd * 1000].export(newFileName, format=self.file_type)
         logging.info(f'{newFileName} has been done!')
         self.cutting = newFileName
+        self.playAudioCutting()
 
-    def continueCutting(self):
-        pass
+    def playAudioCutting(self):
+        from playsound import playsound
+        if not self.cutting:
+            raise BMediaError(102, '缺少正在处理的媒体，无法播放')
+        playsound(self.cutting)
+
+    def continueCutting(self, loffset: int, roffset: int):
+        if not self.cutting:
+            raise BMediaError(101, '缺少正在处理的媒体，无法继续剪辑!')
+
+        self.mp3[(self.left + loffset) * 1000: (self.right + roffset) * 1000]\
+            .export(self.cutting, format=self.file_type)
+
+        self.left = self.left + loffset
+        self.right = self.right + roffset
+        self.playAudioCutting()
+
+    def doneCutting(self):
+        if os.sep in self.cutting:
+            target = self.cutting.split(os.sep)
+        elif '/' in self.cutting:
+            target = self.cutting.split('/')
+        elif '\\' in self.cutting:
+            target = self.cutting.split('\\')
+
+        target[-1] = self.file_name + '_' + str(self.left) + '~' + str(self.right) + '.' + self.file_type
+        self.mp3[self.left * 1000: self.right * 1000].export(os.sep.join(target), format=self.file_type)
+
+
+class BMediaError(Exception):
+    def __init__(self, status, message):
+        super().__init__(message, status)
+        self.status = status
+        self.message = message
 
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    t = r'D:\CET\202303CET4\Listening.mp3'
-    # video = VideoFileClip(t).subclip(0,5.5)
-    # video.audio.write_audiofile(f'{t}.mp3')
-    # media_info = MediaInfo.parse(t)
-    # print(media_info.to_json())
+    t = r'C:\workspace\English\2018年6月四级听力(第一套).mp3'
     b = BlloseMedia(t)
-    b.cut('1:40', '1:43', r'D:\CET\202303CET4\Listening')
+    b.continueCutting()
+    # b.cut('1:40', '1:43', r'C:\workspace\English\2018年6月四级听力(第一套)')
+    from playsound import playsound
+    playsound(r'C:\workspace\English\2018年6月四级听力(第一套)\2018年6月四级听力(第一套)473ac049462e11ee9462302432853a55.mp3')
 
