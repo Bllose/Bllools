@@ -3,9 +3,9 @@
 [ffmpeg-release-essentials.zip](https://www.gyan.dev/ffmpeg/builds/)  
 
 ## 系统环境配置
-IMAGEMAGICK_BINARY -> magick.exe
-FFMPEG_BINARY -> ffmpeg.exe
-Path 下增加ffmpeg的安装地址，比如 ffmpeg/bin  
+IMAGEMAGICK_BINARY -> magick.exe  
+FFMPEG_BINARY -> ffmpeg.exe  
+Path 下增加ffmpeg的安装地址，比如 ffmpeg/bin   
 
 # 使用案例
 
@@ -21,3 +21,6 @@ b.continueCutting(1, 0)
 b.playAudioCutting()
 b.doneCutting()
 ```
+每次进行剪切会播放一下剪切内容， 上面示例多次调用```continueCutting```就是听了文件后做微调。  
+最终完成后调用```doneCutting```输出截取文件。
+
