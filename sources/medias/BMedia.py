@@ -4,6 +4,7 @@ from pydub import AudioSegment
 import subprocess
 import logging
 import os
+import json
 
 MOVIE = ['mp4', 'avi']
 AUDIO = ['mp3']
@@ -41,6 +42,19 @@ class BlloseMedia():
         self.cutting = None
         self.left = 0
         self.right = 0
+        cmd = ["ffprobe", "-v", "quiet", "-print_format", "json", "-show_streams", "-show_format", self.abspath]
+        result = subprocess.check_output(cmd)
+        metadata = json.loads(result.decode('utf-8'))
+
+        for stream in metadata.get('streams'):
+            if stream.get('codec_type') == 'video':
+                self.video_code = stream.get('codec_name')
+                self.video_code_full_name = stream.get('codec_long_name')
+            elif stream.get('codec_type') == 'audio':
+                self.audio_code = stream.get('codec_name')
+                self.audio_code_full_name = stream.get('codec_long_name')
+        logging.debug(f'{self.file_name} has been loaded, {self.video_code}, {self.audio_code}')
+        # print(json.dumps(metadata, sort_keys=True, indent= 4, separators=(',', ':')))
 
     def extract_audio(self, newPath: str):
         """
@@ -54,7 +68,15 @@ class BlloseMedia():
 
     def conversion_to_mp4(self):
         if self.abspath.endswith(".mkv"):
-            subprocess.call(['ffmpeg', '-i', self.abspath, '-codec', 'copy', self.abspath + '.mp4'])
+            # subprocess.call(['ffmpeg', '-i', self.abspath, '-codec', 'copy', self.abspath + '.mp4'])'
+            '''
+            -i 文件路径
+            -c:v 视频流
+            -c:a 音频流
+            '''
+            subprocess.call(['ffmpeg', '-i', self.abspath, '-c:v', 'copy', '-c:a', 'aac', self.abspath + '.mp4'])
+        else:
+            logging.warning(f'暂时无法将{self.file_type}转为mp4; {self.file_name}')
 
     def cut(self, start, end, newPath = None):
         intStart = 0
@@ -125,12 +147,22 @@ class BMediaError(Exception):
         self.message = message
 
 
+def convert_all_of(path: str):
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            cur = root + os.sep + file
+            if not os.path.isfile(cur):
+                continue
+            b = BlloseMedia(cur)
+            b.conversion_to_mp4()
+    logging.info(f'转化MP4任务完成: {path}')
+
+
 if __name__ == '__main__':
-    logging.basicConfig(level=logging.INFO)
-    t = r'C:\workspace\English\2018年6月四级听力(第一套).mp3'
-    b = BlloseMedia(t)
-    b.continueCutting()
-    # b.cut('1:40', '1:43', r'C:\workspace\English\2018年6月四级听力(第一套)')
-    from playsound import playsound
-    playsound(r'C:\workspace\English\2018年6月四级听力(第一套)\2018年6月四级听力(第一套)473ac049462e11ee9462302432853a55.mp3')
+    logging.basicConfig(level=logging.DEBUG)
+    target = r'D:\DowntonAbbey'
+    # convert_all_of(target)
+    b = BlloseMedia(r'D:\DowntonAbbey\Downton.Abbey.S01E01.Chi_Eng.BD-HDTV.AC3.1024X576.x264-YYeTs.mkv')
+    # b.conversion_to_mp4()
+
 
