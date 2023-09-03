@@ -53,7 +53,7 @@ class BlloseMedia():
             elif stream.get('codec_type') == 'audio':
                 self.audio_code = stream.get('codec_name')
                 self.audio_code_full_name = stream.get('codec_long_name')
-        logging.debug(f'{self.file_name} has been loaded, {self.video_code}, {self.audio_code}')
+        logging.debug(f'{self.file_name} has been loaded, {self.video_code}: {self.video_code_full_name}; {self.audio_code}: {self.audio_code_full_name}')
         # print(json.dumps(metadata, sort_keys=True, indent= 4, separators=(',', ':')))
 
     def extract_audio(self, newPath: str):
@@ -160,9 +160,12 @@ def convert_all_of(path: str):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    target = r'D:\DowntonAbbey'
+    target = r'D:\迅雷云盘\Downton.Abbey\Downton.Abbey.S01.1080p.BluRay.x264-SHORTBREHD'
     # convert_all_of(target)
-    b = BlloseMedia(r'D:\DowntonAbbey\Downton.Abbey.S01E01.Chi_Eng.BD-HDTV.AC3.1024X576.x264-YYeTs.mkv')
+    b = BlloseMedia(r'D:\迅雷云盘\Downton.Abbey\Downton.Abbey.S01.1080p.BluRay.x264-SHORTBREHD\s1.mp4.aac\downton.abbey.s01e01.1080p.bluray.x264-shortbrehd.mkv.mp4')
     # b.conversion_to_mp4()
+    from medias import AudioCodecEnum, VideoCodecEnum
+    # from medias.VideoCodecEnum import VideoCE as v
+    # print(v.h264)
 
 
