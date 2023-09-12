@@ -162,7 +162,7 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     target = r'D:\迅雷云盘\Downton.Abbey\Downton.Abbey.S01.1080p.BluRay.x264-SHORTBREHD'
     # convert_all_of(target)
-    b = BlloseMedia(r'D:\迅雷云盘\Downton.Abbey\Downton.Abbey.S01.1080p.BluRay.x264-SHORTBREHD\s1.mp4.aac\downton.abbey.s01e01.1080p.bluray.x264-shortbrehd.mkv.mp4')
+    b = BlloseMedia(r'D:\DowntonAbbey\唐顿庄园.Downton.Abbey.S01E02.Chi_Eng.BD-HDTV.AC3.1024X576.x264-YYeTs人人影视.mkv')
     # b.conversion_to_mp4()
     from medias import AudioCodecEnum, VideoCodecEnum
     # from medias.VideoCodecEnum import VideoCE as v
