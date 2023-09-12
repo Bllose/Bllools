@@ -584,6 +584,6 @@ if __name__ == '__main__':
     od.set_path(os.path.abspath('../../resources')) \
         .set_file_name(r'HIT22VCteam.xlsx') \
         .set_sheet_name(r'handler')
-    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-K')
+    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-R')
     grouping = Grouping(od.load())
     grouping.process(order=6).showTheLastGroup().showTheLastOrder()
