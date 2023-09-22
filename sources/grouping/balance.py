@@ -135,7 +135,7 @@ class Group:
     def toString(self):
         toShowList = []
         for cur in self._individuals:
-            toShowList.append(f'{cur.key}\t{cur.name}:{cur.getGenderCN()}\t{cur.leaderCounter}')
+            toShowList.append(f'{cur.key}\t{cur.name}\t{cur.getGenderCN()}\t{cur.leaderCounter}')
         print('\r\n'.join(toShowList))
 
     def choseLeader(self, decayList: list):
@@ -299,6 +299,7 @@ class OriginData:
             curColumn = ws[cur]
             datasList.append(curColumn)
 
+        from helper.common import color
         groups = []
         for i in range(1, maxRow):
             '''
@@ -306,11 +307,12 @@ class OriginData:
             首先是每次所分配组的信息
             其次是统计作为组长的信息
             '''
+            from openpyxl.styles.colors import RGB
             dataList = []
             leaderList = []
             for datas in datasList:
                 dataList.append(datas[i].value)
-                leaderList.append(0 if datas[i].fill.fgColor.rgb == '00000000' else 1)
+                leaderList.append(1 if datas[i].fill.fgColor.rgb == color['blue'] else 0)
 
             individual = Individual()
             individual\
