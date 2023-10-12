@@ -40,6 +40,11 @@ def get_size(theFileName):
 
 
 def deep_walk(theRoot):
+    """
+    递归查找目录下图片，如果图片大于临界值则进行压缩
+    :param theRoot: 根目录
+    :return: None
+    """
     for root, dirs, files in os.walk(theRoot):
         for file in files:
             path = root + os.sep + file
