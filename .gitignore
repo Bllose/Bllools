@@ -1,3 +1,15 @@
 .idea
+
+
 **/*/__pycache__/
+**/*/dist
+**/*/build
 ~$*.xlsx
+
+*.toc
+*.pkg
+*.pyz
+*.txt
+*.html
+*.exe
+*.spec

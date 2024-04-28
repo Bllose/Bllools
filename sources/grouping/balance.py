@@ -583,9 +583,9 @@ class Grouping:
 
 if __name__ == '__main__':
     od = OriginData()
-    od.set_path(os.path.abspath('../../resources')) \
+    od.set_path(os.path.abspath('resources')) \
         .set_file_name(r'HIT22VCteam.xlsx') \
         .set_sheet_name(r'handler')
-    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-V')
+    od.config().set_key(r'B').set_name(r'C').set_gender(r'D').set_datas(r'E-X')
     grouping = Grouping(od.load())
-    grouping.process(order=6).showTheLastGroup().showTheLastOrder()
+    grouping.process(order=9).showTheLastGroup().showTheLastOrder()
