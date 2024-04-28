@@ -1,5 +1,5 @@
 .idea
-
+sources/tcl/mbyq_config.yml
 
 **/*/__pycache__/
 **/*/dist
