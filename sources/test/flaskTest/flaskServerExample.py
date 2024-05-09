@@ -9,7 +9,7 @@ console = Console()
 
 @app.route('/')
 @app.route('/<path:path>', methods=['GET', 'POST'])
-def query_example():
+def query_example(path = ''):
     url = request.url
     type = request.method
     headers = {h[0]: h[1] for h in request.headers}
@@ -21,7 +21,24 @@ def query_example():
         response = requests.get(url=url, headers=headers)
     elif type == 'POST':
         data = request.data
+        console.print(f'data -> {data}')
         response = requests.post(url=url, headers=headers, data= data)
+    return response_maker(response)
+
+
+@app.route('/index/', methods=['GET', 'POST'])
+def index():
+    url = request.url
+    headers = {h[0]: h[1] for h in request.headers}
+    response = requests.get(url=url, headers=headers)
+    return response_maker(response)
+
+
+@app.route('/authenticate/', methods=['POST'])
+def login():
+    form = {f[0]: f[1] for f in request.form.items()}
+    headers = {h[0]: h[1] for h in request.headers}
+    response = requests.post(url=request.url, headers=headers, data=form)
     return response_maker(response)
 
 
@@ -29,6 +46,8 @@ def query_example():
 @app.route('/static/style.css', methods=['GET'])
 @app.route('/static/jquery/jquery.min.js', methods=['GET'])
 @app.route('/static/bootstrap/js/bootstrap.min.js', methods=['GET'])
+@app.route('/static/bootstrap/css/bootstrap.min.css.map', methods=['GET'])
+@app.route('/static/style.css.map', methods=['GET'])
 def static_request_handler():
     url = request.url
     headers = {h[0]: h[1] for h in request.headers}
@@ -54,6 +73,8 @@ def response_maker(response):
     flask_response = make_response(content)
     flask_response.status_code = response.status_code
     for key, value in response.headers.items():
+        if key == 'Transfer-Encoding':
+            continue
         flask_response.headers[key] = value
     return flask_response
 

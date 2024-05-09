@@ -8,10 +8,9 @@ import os
 import sys
 import cmd2
 import logging
-import requests
 
 
-class ProDataHandler(cmd2.Cmd):
+class UatMbyqHandler(cmd2.Cmd):
 
     def __init__(self):
         super().__init__()
@@ -45,10 +44,8 @@ class ProDataHandler(cmd2.Cmd):
                     import yaml
                     data = yaml.safe_load(config)
                     logging.info(f'通过文件 {configYml} 加载相关配置')
-                    login_url = data['tcl']['pro']['data']['url']
-                    login_user = data['tcl']['pro']['data']['user']
-                    login_password = data['tcl']['pro']['data']['password']
-                    chrome_driver_path = data['driver']['browser']['chrome']
+                    login_url = data['tcl']['uat']['mbyq']['url']
+                    chrome_driver_path = data['driver']['browser']['chrome'].strip()
 
         if chrome_driver_path is None or len(chrome_driver_path) < 1:
             chrome_driver_path = os.environ.get("CHROME_DRIVER")
@@ -56,26 +53,27 @@ class ProDataHandler(cmd2.Cmd):
                 print("请在系统总配置驱动路径 CHROME_DRIVER = /path/to/chromedriver")
                 sys.exit(3)
 
-        options = webdriver.ChromeOptions()
+        self.options = webdriver.ChromeOptions()
         # 执行完成后不要关闭浏览器
-        options.add_experimental_option("detach", True)
-
+        self.options.add_experimental_option("detach", True)
         if args.proxy is not None and len(args.proxy) > 1:
             # 设置代理
-            options.add_argument("--proxy-server=" + args.proxy)
+            self.options.add_argument("--proxy-server=" + args.proxy)
         logging.debug(f'加载驱动{chrome_driver_path}')
-        service = Service(chrome_driver_path)
-        self.driver = webdriver.Chrome(service=service, options=options)  # Optional argument, if not specified will search path.
-        self.driver.get(login_url)
-        time.sleep(1) # Let the user actually see something!
 
+
+        service = Service(chrome_driver_path)
+        self.driver = webdriver.Chrome(service=service, options=self.options)  # Optional argument, if not specified will search path.
+        self.driver.get(login_url)
+            
+        time.sleep(1) # Let the user actually see something!
         # 隐式等待
         self.driver.implicitly_wait(5)
 
         userNameColumn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div/form/div[1]/input')
-        userNameColumn.send_keys(login_user)
+        # userNameColumn.send_keys(login_user)
         passwordColumn = self.driver.find_element(By.XPATH, '/html/body/div[1]/div/form/div[2]/input')
-        passwordColumn.send_keys(login_password)
+        # passwordColumn.send_keys(login_password)
 
         login_button = self.driver.find_element(By.XPATH, '/html/body/div[1]/div/form/div[3]/button')
         login_button.click()
@@ -105,43 +103,6 @@ class ProDataHandler(cmd2.Cmd):
         # self.line_group.text 将会展示面板上所有SQL
         
 
-    def do_sql(self, args):
-        sql = args.strip()
-        content_type = 'application/x-www-form-urlencoded; charset=UTF-8'
-        X_Requested_With = 'XMLHttpRequest'
-        Host = 'sql.tclpv.cn'
-
-        headers = {
-            'Content-Type': content_type,
-            'X-Requested-With': X_Requested_With,
-            'Host': Host,
-            'X-CSRFToken': self.csrftoken,
-            'Cookie': self.cookie,
-            'Content-Length': '180'
-        }
-
-        url = 'http://sql.tclpv.cn/query/'
-
-        data = {'instance_name': '极光生产只读实例', 'db_name': 'dba', 'schema_name': '','tb_name': '', 'sql_content': 'select * from `xk-order`.`order` limit 1;', 'limit_num': 100}
-        response = requests.post(url=url, headers=headers, data= data)
-
-        from rich import inspect
-        inspect(response)
-
-
-    def do_set_csrftoken(self, args):
-        self.csrftoken = args.strip()
-
-    def do_set_cookie(self, args):
-        self.cookie = args.strip()
-
-
-    def do_echo_sql(self, args):
-        from rich.console import Console
-        from rich.syntax import Syntax
-        syntax = Syntax(self.line_group.text, "sql", theme="monokai", line_numbers=True)
-        console = Console()
-        console.print(syntax)
 
     speak_parser = cmd2.Cmd2ArgumentParser()
     speak_parser.add_argument('-p', '--piglatin', action='store_true', help='atinLay')
@@ -166,5 +127,5 @@ class ProDataHandler(cmd2.Cmd):
 
 
 if __name__ == '__main__':
-    c = ProDataHandler()
+    c = UatMbyqHandler()
     sys.exit(c.cmdloop())
