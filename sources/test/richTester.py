@@ -130,9 +130,9 @@ def processing_task_example():
             console.log(f'{task} complete')
 
 if __name__ == '__main__':
-    processing_task_example()          
+    # processing_task_example()          
     # colorful_table_example()
     # md_example()
     # tree_example()
-    # progress_example()
+    progress_example()
     # inspect_exampl()

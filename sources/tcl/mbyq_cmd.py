@@ -192,8 +192,13 @@ class Handler(cmd2.Cmd):
         重新定义日志级别 10:debug; 20:info; 30:warning; 40:error
         '''
         self.init_client()
-        self.mbyqClient.set_log_level(args.args)
-        self.loglevel = args.args
+        try:
+            theLevel = int(args.args)
+        except Exception as e:
+            logger.error(f'日志等级需要配置 10~60 的数字! 当前配置值{args.args}非法')
+            return
+        self.mbyqClient.set_log_level(theLevel)
+        self.loglevel = theLevel
 
 
     def do_exit(self, _):

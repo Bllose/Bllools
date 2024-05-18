@@ -104,9 +104,11 @@ class mbyq():
                     file_name = self.path + os.sep + str(fundId) + '_' + self.funds[fundId] + '_' + key + '.json'
                     with open(file_name, 'w') as f:
                         f.write(curJson)
-                        logger.info(f'写入文件{file_name}')
+                        if logger.isEnabledFor(logging.INFO):
+                            self.myConsole.print(f'写入文件{file_name}', style='bold italic cyan')
                 else:
-                    logger.debug(f'KEY:{key} 不在本次工作范围，略过')
+                    if logger.isEnabledFor(logging.DEBUG):
+                        self.myConsole.print(f'KEY:{key} 不在本次工作范围，略过', style='dim bright_yellow')
 
 
     def push(self, filter: list):

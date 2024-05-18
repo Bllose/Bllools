@@ -117,7 +117,7 @@ class ProDataHandler(cmd2.Cmd):
             'Host': Host,
             'X-CSRFToken': self.csrftoken,
             'Cookie': self.cookie,
-            'Content-Length': '180'
+            'Content-Length': '580'
         }
 
         url = 'http://sql.tclpv.cn/query/'
