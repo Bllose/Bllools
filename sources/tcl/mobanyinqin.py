@@ -29,10 +29,11 @@ class mbyq():
             os.mkdir(self.path)
         self.page_key_list = page_key_list
         self.host = host
-        if funds is not None and len(funds)>1:
+        self.funds_dict = {112: '光富宝',115: '光鑫宝',128: '光盈宝',129: '光鑫宝-共富',130: '光富宝-同裕',131: '光瑞宝',132: '整村汇流',133: '公共屋顶',134: '光悦宝',135: '光煜宝-全款建站',136: '光煜宝-融资建站'}
+        if funds is not None and len(funds) > 0:
             self.funds = funds
         else:
-            self.funds = {112: '光富宝',115: '光鑫宝',128: '光盈宝',129: '光鑫宝-共富',130: '光富宝-同裕',131: '光瑞宝',132: '整村汇流',133: '公共屋顶',134: '光悦宝',135: '光煜宝-全款建站',136: '光煜宝-融资建站'}
+            self.funds = [112, 115, 128, 129, 130, 131, 132, 133, 134, 135, 136]
 
     def set_log_level(self, level: int):
         if level is None or not isinstance(level, int):
@@ -59,6 +60,10 @@ class mbyq():
         if pageKeyList is not None and len(pageKeyList) > 0:
             self.page_key_list = pageKeyList
 
+    def set_fund_list(self, fundIdList):
+        if fundIdList is not None and len(fundIdList) > 0:
+            self.funds = fundIdList
+
     def get(self,
             fund_list = []):
         
@@ -66,7 +71,7 @@ class mbyq():
             print('需要指定pageKey!')
             return 
         elif len(fund_list) == 0:
-            fund_list = [key for key in self.funds]
+            fund_list = [key for key in self.funds_dict]
 
         headers = {
             'Authorization': self.authorization
@@ -101,7 +106,7 @@ class mbyq():
                 key = tab['pageKey']
                 if key in self.page_key_list:
                     curJson = json.dumps(tab)
-                    file_name = self.path + os.sep + str(fundId) + '_' + self.funds[fundId] + '_' + key + '.json'
+                    file_name = self.path + os.sep + str(fundId) + '_' + self.funds_dict[int(fundId)] + '_' + key + '.json'
                     with open(file_name, 'w') as f:
                         f.write(curJson)
                         if logger.isEnabledFor(logging.INFO):

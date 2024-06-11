@@ -17,6 +17,7 @@ class Handler(cmd2.Cmd):
     load_parser = cmd2.Cmd2ArgumentParser()
     load_parser.add_argument('-l', '--loglevel', type=int, default=40, help='设置日志等级DEBUG:10; INFO:20; WARNING:30; ERROR:40(DEFUALT)')
     load_parser.add_argument('-p', '--pageKey', type=str, help='指定具体的pageKey下载')
+    load_parser.add_argument('-f', '--fundId', type=str, help='指定具体的产品ID下载，比如光鑫宝-共富 就填 129')
     load_parser.add_argument('-e', '--env', type=str, default='', help='环境可选dev, sit, uat, pro')
     
     @cmd2.with_argparser(load_parser)
@@ -27,11 +28,13 @@ class Handler(cmd2.Cmd):
             self.origin = False
         if args.pageKey is not None and len(args.pageKey) > 0:
             self.page_key_list = args.pageKey.split(',')
+            if hasattr(self, 'mbyqClient'):
+                self.mbyqClient.set_page_key_list(self.page_key_list)
+        if args.fundId is not None and len(args.fundId) > 0:
+            self.fund_list = args.fundId.split(',')
+            if hasattr(self, 'mbyqClient'):
+                self.mbyqClient.set_fund_list(self.fund_list)
         self.init_client()
-
-        if not hasattr(self, 'fund_list'):
-            logger.warning('未指定产品, 默认使用5号产品 129:光鑫宝-共富')
-            self.fund_list = [129]
         
         if args.env is not None and len(args.env) > 1:
             logger.debug(f'加载自定义环境: {args.env}')
@@ -66,11 +69,15 @@ class Handler(cmd2.Cmd):
                 self.do_set_token()
             if not hasattr(self, 'origin'):
                 self.origin = False
+            if not hasattr(self, 'fund_list'):
+                logger.warning('未指定产品, 默认使用5号产品 129:光鑫宝-共富')
+                self.fund_list = [129]
             self.mbyqClient = mbyq(host=self.host, 
                                 token=self.token, 
                                 path=self.path, 
                                 origin=self.origin,
-                                page_key_list=self.page_key_list)
+                                page_key_list=self.page_key_list,
+                                funds=self.fund_list)
             self.mbyqClient.set_log_level(self.loglevel)
             
     def refresh_client(self):

@@ -28,6 +28,12 @@ class ProDataHandler(cmd2.Cmd):
         通过加载配置文件， 直接登录生产数据查询页面
         """
         logging.basicConfig(level=args.loglevel)
+
+
+        ################################
+        ## 基础准备部分 开始
+        ################################
+
         # 当前文件的绝对路径
         exe_path = sys.argv[0]
         # 当前文件所在目录
@@ -66,6 +72,18 @@ class ProDataHandler(cmd2.Cmd):
         logging.debug(f'加载驱动{chrome_driver_path}')
         service = Service(chrome_driver_path)
         self.driver = webdriver.Chrome(service=service, options=options)  # Optional argument, if not specified will search path.
+
+        ################################
+        ## 基础准备部分 结束
+        ################################
+
+        json_tool_url = r'https://jsoneditoronline.org/#left=local.peluru&right=local.rugeme'
+        self.driver.get(json_tool_url)
+
+        # Open a new window 
+        self.driver.execute_script("window.open('');") 
+        # Switch to the new window and open new URL 
+        self.driver.switch_to.window(self.driver.window_handles[1]) 
         self.driver.get(login_url)
         time.sleep(1) # Let the user actually see something!
 
@@ -104,6 +122,7 @@ class ProDataHandler(cmd2.Cmd):
         self.line_group = self.driver.find_element(By.XPATH, '/html/body/div[1]/div[4]/div/div[2]/div[1]/div/div[2]/form/div[1]/pre/div[2]/div/div[3]')
         # self.line_group.text 将会展示面板上所有SQL
         
+    
 
     def do_sql(self, args):
         sql = args.strip()
