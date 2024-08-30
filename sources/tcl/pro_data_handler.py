@@ -84,6 +84,13 @@ class ProDataHandler(cmd2.Cmd):
         self.driver.execute_script("window.open('');") 
         # Switch to the new window and open new URL 
         self.driver.switch_to.window(self.driver.window_handles[1]) 
+        oa_url = r'https://t0ah9wh5h5f.feishu.cn/sheets/FajdsLYZPhw5NLtmRu3cddnmnJg'
+        self.driver.get(oa_url)
+
+        # Open a new window 
+        self.driver.execute_script("window.open('');") 
+        # Switch to the new window and open new URL 
+        self.driver.switch_to.window(self.driver.window_handles[2]) 
         self.driver.get(login_url)
         time.sleep(1) # Let the user actually see something!
 

@@ -1,9 +1,12 @@
 import cmd2
 from tcl.mobanyinqin import mbyq
+from tcl.tasks.AprTask import mbyq0808task
+from tcl.tasks.AprTask import mbyq0829task
 import datetime
 import os
 import sys
 import logging
+from rich.console import Console
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +26,9 @@ class Handler(cmd2.Cmd):
     @cmd2.with_argparser(load_parser)
     def do_fetch_tabs(self, args):
         '获取指定的栏位内容'
-
+        if not hasattr(self, 'config'):
+            print("未加载配置项目，请先初始化: init")
+            return
         if not hasattr(self, 'origin'):
             self.origin = False
         if args.pageKey is not None and len(args.pageKey) > 0:
@@ -41,6 +46,40 @@ class Handler(cmd2.Cmd):
             self.do_select_host(args.env)
         self.mbyqClient.get(fund_list=self.fund_list)
 
+    def do_20240829(self, args):
+        """
+        [4888365414] 预审阶段新增活动规则协议
+        1、流程规则配置
+        2、待预审提交页修改
+            1）合同签署栏位
+            2）合同签约提交
+            3）合同影像件
+        https://jsoneditoronline.org/#left=local.nakiti&right=local.codesa
+        """
+        if not hasattr(self, 'mbyqClient'):
+            self.init_client()
+        mbyq0829task.taskProcess(self.mbyqClient)
+
+    def do_20240829_check(self, args):
+        """
+        检查工作完成情况
+        """
+        if not hasattr(self, 'mbyqClient'):
+            self.init_client()
+        mbyq0829task.mbyqConfigHandler(self.path)
+
+
+    def do_20240820(self, args):
+        '''
+        [4503287180] 购售电合同影像件信息核对增加字段 
+        模版引擎配置任务
+        20240820日上线
+        '''
+        if not hasattr(self, 'path'):
+            self.input_path()
+        mbyq0808task.handler(self.path)
+        
+
     def do_select_host(self, args):
         '''
         通过环境选择host
@@ -51,8 +90,50 @@ class Handler(cmd2.Cmd):
     def do_push(self, args):
         self.init_client()
 
-        filter = args.split(',')
+        filterstr = args.args.strip()
+        if len(filterstr) < 1:
+            filter = []
+        else :
+            filter = filterstr.split(',')
         self.mbyqClient.push(filter)
+
+    def do_pwd(self, args):
+        if self.path.endswith(":"):
+            self.path = self.path + os.sep
+        self.myConsole.print(self.path, style='green')
+    
+    def do_ls(self, args):
+        if self.path.endswith(":"):
+            self.path = self.path + os.sep
+        for name in os.listdir(self.path):
+            abs_path = self.path + os.sep + name
+            if os.path.isdir(abs_path):
+                self.myConsole.print(name, style='green')
+            else:
+                self.myConsole.print(name, style='white dim')
+    
+    def do_cd(self, args):
+        if self.path.endswith(":"):
+            self.path = self.path + os.sep
+        target = args.args.strip()
+        if len(target) > 0:
+            if target == '..':
+                target = self.path[0:self.path.rfind(os.sep)]
+                if os.path.isdir(target):
+                    self.path = target
+                    self.myConsole.print(f'↑ {self.path}', style='green')
+
+            elif target == '.':
+                self.myConsole.print(f'← {self.path}', style='green')
+            else:
+                abs_new_path  = self.path + os.sep + args.args
+                if os.path.isdir(abs_new_path):
+                    self.path = abs_new_path
+                    self.myConsole.print(f'→ {args.args}', style='green')
+        if not hasattr(self, 'mbyqClient'):
+            self.init_client()
+        self.mbyqClient.set_path(path=self.path)
+
 
     def init_client(self):
         """
@@ -214,18 +295,13 @@ class Handler(cmd2.Cmd):
         '''
         exit(0)
 
-    
-    init_parser = cmd2.Cmd2ArgumentParser()
-    init_parser.add_argument('-l', '--loglevel', type=int, default=20, help='设置日志等级DEBUG:10; INFO:20; WARNING:30; ERROR:40(DEFUALT)')
-    
-    @cmd2.with_argparser(init_parser)
-    def do_init(self, args):
-        """
-        用来初始化关键参数的逻辑
-        """
-        logger.setLevel(level=int(args.loglevel))
-        self.loglevel = int(args.loglevel)
-        logger.setLevel(level=self.loglevel)
+
+    # from argparse import Namespace    
+    def preloop(self):
+        super().preloop()
+        self.loglevel = logging.INFO
+        logger.setLevel(level=logging.INFO)
+        self.myConsole = Console()
 
         # 当前文件的绝对路径
         exe_path = sys.argv[0]
@@ -244,6 +320,39 @@ class Handler(cmd2.Cmd):
             logger.error(f'获取不到配置文件，请输入配置文件绝对路径。当前解析文件失败↓\r\n绝对路径:{absYmlPath} \r\n 相对路径:{relativePath}')  
             absYmlPath = input('请重新输入配置文件绝对路径: ')
             self.load_config_file(configYml, absYmlPath)
+
+    init_parser = cmd2.Cmd2ArgumentParser()
+    init_parser.add_argument('-l', '--loglevel', type=int, default=20, help='设置日志等级DEBUG:10; INFO:20; WARNING:30; ERROR:40(DEFUALT)')
+    
+    @cmd2.with_argparser(init_parser)
+    def do_init(self, args):
+        """
+        用来初始化关键参数的逻辑
+        """
+        logger.setLevel(level=int(args.loglevel))
+        self.loglevel = int(args.loglevel)
+        logger.setLevel(level=self.loglevel)
+
+        self.myConsole = Console()
+
+        # 当前文件的绝对路径
+        exe_path = sys.argv[0]
+        # 当前文件所在目录
+        current_work_dir = os.path.dirname(exe_path)
+        logger.debug(f'获取当前文件所在目录: {current_work_dir}')
+
+        configYml = 'mbyq_config.yml'
+        absYmlPath = current_work_dir + os.sep + configYml
+        relativePath = './' + configYml
+        if os.path.isfile(absYmlPath):
+            self.load_config_file(configYml, absYmlPath)
+        elif os.path.isfile(absYmlPath):
+            self.load_config_file(configYml, relativePath)
+        else:
+            logger.error(f'获取不到配置文件，请输入配置文件绝对路径。当前解析文件失败↓\r\n绝对路径:{absYmlPath} \r\n 相对路径:{relativePath}')  
+            absYmlPath = input('请重新输入配置文件绝对路径: ')
+            self.load_config_file(configYml, absYmlPath)
+        
 
     def load_config_file(self, configYml, absYmlPath):
         try:
@@ -296,4 +405,6 @@ class Handler(cmd2.Cmd):
 
 if __name__ == '__main__':
     Handler().cmdloop()
+
+    
         
