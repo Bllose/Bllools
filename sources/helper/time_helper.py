@@ -1,13 +1,15 @@
 import time
-import datetime
+from datetime import datetime
+from dateutil.relativedelta import relativedelta
 
-t = time.time()
-#
-# print(t)  # 原始时间数据
-# print(int(t))  # 秒级时间戳
-# print(int(round(t * 1000)))  # 毫秒级时间戳
-print(int(round(t * 1000000)))  # 微秒级时间戳
+def ageRangeCalculate(minimalAge: int, maxmalAge: int):
+    now = datetime.now()
+    date_mini_years_ago = now - relativedelta(years=minimalAge)  
+    date_max_years_age = now - relativedelta(years=maxmalAge)
 
-dt = '2024-04-07 11:03:54'
-ts = int(time.mktime(time.strptime(dt, "%Y-%m-%d %H:%M:%S")) * 1000000)
-print(ts)
+    print("当前日期:", now.strftime("%Y-%m-%d"))  
+    print("mini年前的日期:", date_mini_years_ago.strftime("%Y-%m-%d"))
+    print("max年前的日期:", date_max_years_age.strftime("%Y-%m-%d"))
+
+if __name__ == '__main__':
+    ageRangeCalculate(65, 70)

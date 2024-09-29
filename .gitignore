@@ -1,5 +1,7 @@
 .idea
+.vscode/
 sources/tcl/mbyq_config.yml
+build/
 
 **/*/__pycache__/
 **/*/dist
