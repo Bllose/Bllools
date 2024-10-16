@@ -230,22 +230,4 @@ def md5_base64_encode(body_raw):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    client = eqb_sign(app_id='5111744642', app_key='0ad8ab801105ee700a16d2bfc287d6b2')
-    request = '{"name":"TCL光伏科技 沐光同行家国共贺 活动授权书","templateId":"f880544a64b24b529d47a6df6d39b95b","simpleFormFields":{}}'
-    fileId, downloadUrl= client.createFileByTemplate(request)
-    logging.info(f'fileId: {fileId}')
-    logging.info(f'downloadUrl: {downloadUrl}')
-
-
-    accountId = client.getUserId(name='陈曦', idNumber='431026198801130018', mobile='18129705502')
-    logging.info(f'accountId: {accountId}')
-
-    flowId = client.createSignFlow(fileId=fileId, accountId=accountId)
-    logging.info(f'flowId: {flowId}')
-
-    shortUrl = client.fetchSignUrl(flowId=flowId, mobile='18129705502')
-    logging.info(f'shortUrl: {shortUrl}')
-
-    sql_pre = "INSERT INTO `xk-contract`.sf_sign_flow (sign_flow_no, third_flow_id, object_id, scene_code, scene_name, sign_type, signer, channel, template_code, sign_method, sign_flow_phase, is_delete, creator, updator, create_time, update_time, object_no, fill_element, flow_start_time, flow_end_time, sign_url, version, image_code, is_reuse, third_file_id, cosign_url) VALUES";
-    sql_param_template = "('SF472618987600089088', '{{flowId}}', NULL, 'OBO001','TCL光伏科技“沐光同行家国同贺”活动授权书', 'e签宝短信签约', '{{accountId}}', 3,'f880544a64b24b529d47a6df6d39b95b', 1, 'NEW', 0, 'sys', 'sys',now(), now(), '{{orderNo}}', '{}', NULL, NULL,'{{shortUrl}}', 'v1', 'OBO001_image', 0, '{{fileId}}', null)"
-  
+    
