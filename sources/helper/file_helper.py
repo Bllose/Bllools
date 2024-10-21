@@ -1,25 +1,15 @@
-# import fitz
-
-# pdf = r'D:\temp\target.pdf'
-# doc = fitz.open(pdf)
-# out = open(r"d:\temp\output.txt", "wb") 
-# for page in doc: # iterate the document pages
-# 	text = page.get_text().encode("utf8") # get plain text (is in UTF-8)
-# 	out.write(text) # write text of page
-# 	out.write(bytes((12,))) # write page delimiter (form feed 0x0C)
-# out.close()
-# print("done")
-
-
-# import pdfplumber
-
-# pdf = pdfplumber.open(r'D:\temp\target.pdf')
-# pages = pdf.pages
-# text = pages[0].extract_text()
-# print("done")
-
 import hashlib  
 import base64  
+import pandas as pd
+
+def readExcelSheet1(absPath: str) -> dict:
+    """
+    读取目标excel 的 sheet1
+    并且将每行作为一条数据返回
+    其中，表头为key, 每行对应的cell为value
+    """
+    df = pd.read_excel(absPath, sheet_name='Sheet1')  
+    return df.to_dict(orient= 'records')
   
 def get_file_content_md5(file_path):  
     """  
@@ -52,6 +42,6 @@ def get_file_content_md5(file_path):
 
 if __name__ == '__main__':
     # 示例用法  
-    file_path = r"C:\Users\bllos\Desktop\光煜宝-全款建站V1.2合同\光伏电站交付验收确认书.docx"  
-    file_content_md5 = get_file_content_md5(file_path)  
-    print(f"文件Content-MD5值: {file_content_md5}")
+    absPath = r"D:\workplace\target.xlsx"  
+    for each in readExcelSheet1(absPath):
+        print(each['objectNo'])
