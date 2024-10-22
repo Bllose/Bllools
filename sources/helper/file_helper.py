@@ -2,13 +2,13 @@ import hashlib
 import base64  
 import pandas as pd
 
-def readExcelSheet1(absPath: str) -> dict:
+def readExcelSheet1(absPath: str, sheet_name: str = 'Sheet1') -> dict:
     """
     读取目标excel 的 sheet1
     并且将每行作为一条数据返回
     其中，表头为key, 每行对应的cell为value
     """
-    df = pd.read_excel(absPath, sheet_name='Sheet1')  
+    df = pd.read_excel(absPath, sheet_name=sheet_name)  
     return df.to_dict(orient= 'records')
   
 def get_file_content_md5(file_path):  
@@ -42,6 +42,5 @@ def get_file_content_md5(file_path):
 
 if __name__ == '__main__':
     # 示例用法  
-    absPath = r"D:\workplace\target.xlsx"  
-    for each in readExcelSheet1(absPath):
-        print(each['objectNo'])
+    absPath = r"C:\Users\bllos\Desktop\太平石化供货合同附件刷新\TPSHHY(2024)ZL00016\起租-租赁合同-附件二.pdf"  
+    print(get_file_content_md5(absPath))

@@ -1,7 +1,9 @@
 from helper.config.config_type import type
+from functools import wraps
 import sys
 import os
 import logging
+import json
 
 class config():
     def __init__(self, typeList = [type.FILE, type.ENV, type.SYS]):
@@ -92,7 +94,36 @@ class config():
             return self.config[key]
         else:
             return None
-        
+
+def dConfig():
+    """
+    增加配置项目
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            load_config(kwargs)
+            result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
+
+def load_config(kwargs):
+    theConfig = config().load()
+    kwargs['config'] = theConfig.config
+    logging.debug(f'加载配置项{json.dumps(theConfig.config)}')
+
+def class_config(cls):
+    """
+    给 class 类添加配置参数
+    """
+    class wrapper_class(cls):
+        def __init__(self, *args, **kwargs):
+            load_config(kwargs)
+            super().__init__(*args, **kwargs)
+    return wrapper_class
+
+
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     myConfig = config([type.FILE])

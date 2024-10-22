@@ -8,6 +8,7 @@ e签宝补救措施
 """
 
 from datetime import datetime, timezone  
+from helper.config_helper import class_config
 import hashlib  
 import base64
 import hmac
@@ -18,20 +19,65 @@ import logging
 import json
 import urllib
 
+@class_config
 class eqb_sign():
-    def __init__(self, app_id, app_key, host) -> None:
+    def __init__(self, env:str = 'test', config = {}) -> None:
+        
+        self.config = config
+
+        eqb = self.config['eqb'][env]
+
         self.header = {
-            'X-Tsign-Open-App-Id': app_id,
+            'X-Tsign-Open-App-Id': eqb['appId'],
             'X-Tsign-Open-Auth-Mode': 'Signature',
-            'Host': host,
+            'Host': eqb['host'],
             'Accept-Encoding': 'gzip, deflate, br',
             'Accept': '*/*',
             'Content-Type': 'application/json; charset=UTF-8',
             'Connection': 'keep-alive'
         }
-        self.host = host
-        self.app_key = app_key
+        self.host = eqb['host']
+        self.app_key = eqb['appKey']
         self.type = 'POST'
+        
+
+    def fetchUpdateFileUrl(self, contentMd5: str, fileName: str, fileSize: int) -> tuple:
+        """
+        申请上传合同文件
+        获取最终上传文件的地址
+        """
+        current_url = r'/v3/files/file-upload-url'
+        request_dict = {
+                        "contentMd5": contentMd5,
+                        "contentType": "application/octet-stream",
+                        "fileName": fileName,
+                        "fileSize": fileSize
+                    }
+        bodyRaw = json.dumps(request_dict)
+        self.establish_head_code(bodyRaw, current_url)
+        response_json = self.getResponseJson(bodyRaw, current_url)
+        if response_json['code'] == 0:
+            return str(response_json['data']['fileId']), str(response_json['data']['fileUploadUrl'])
+        else:
+            logging.warning(f'获取上传文件地址失败,返回报文: {json.dumps(response_json)}')
+            return '', ''
+
+    def uploadFile(self, putUrl: str, md5: str, absPath: str):
+        """
+        上传选中的文件
+        @param putUrl: 由 #fetchUpdateFileUrl 调用e签宝返回的上传地址
+        """
+        headers = {
+            'Content-MD5': md5,
+            'Content-Type': 'application/octet-stream',
+            'Accept': '*/*',
+            'Host': self.host,
+            'Accept-Encoding': 'gzip, deflate, br',
+            'Connection': 'keep-alive'
+        }
+        conn = http.client.HTTPSConnection(self.host)
+        conn.request('PUT', putUrl, headers=headers)
+
 
     def fetchSignUrl(self, flowId, mobile):
         current_path = f'/v3/sign-flow/{flowId}/sign-url'
@@ -214,7 +260,6 @@ class eqb_sign():
         else:
             return ''
 
-
     def searchWordsPosition(self, fileId:str, keyword: str) -> list:
         """
         查询单个关键词位置
@@ -259,8 +304,6 @@ class eqb_sign():
             return response_json['data']['seals']
         else:
             return []
-
-
         
     def getResponseJson(self, bodyRaw, current_path) -> json:
         """
@@ -362,22 +405,24 @@ def md5_base64_encode(body_raw):
     base64_encoded = base64.b64encode(md5_hash).decode('utf-8')  
     return base64_encoded  
 
-myConfig = None
-def environment(env: str):
-    from helper.config_helper import config
-    global myConfig
-    if myConfig is None:
-        myConfig = config().load()
-    env = env.lower()
-    match env:
-        case 'pro':
-            return str(myConfig.get('eqb')['pro']['appId']), myConfig.get('eqb')['pro']['appKey'], myConfig.get('eqb')['pro']['host']
-        case _:
-            return str(myConfig.get('eqb')['test']['appId']), myConfig.get('eqb')['test']['appKey'], myConfig.get('eqb')['test']['host']
-
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    client = eqb_sign(*environment('test'))
-    client.fetchSealInfoByOrgId('c7512ed7332045f087c7028d551285a8')
+    client = eqb_sign()
 
+    from helper.file_helper import get_file_content_md5
+    import os
+
+    file_path = r'C:\Users\bllos\Desktop\太平石化供货合同附件刷新\TPSHHY(2024)ZL00016'
+    fileName = r'起租-租赁合同-附件二.pdf'
+    absPath = file_path + os.sep + fileName
+
+    file_stat = os.stat(absPath)  
+    file_size = file_stat.st_size 
+
+    md5 = get_file_content_md5(absPath)
+
+    fileId, fileUploadUrl = client.fetchUpdateFileUrl(md5, fileName, file_size)
+    print(md5)
+    print(fileId)
+    print(fileUploadUrl)
