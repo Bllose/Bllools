@@ -9,6 +9,7 @@ e签宝补救措施
 
 from datetime import datetime, timezone  
 from helper.config_helper import class_config
+from helper.config_helper import config
 import hashlib  
 import base64
 import hmac
@@ -22,9 +23,12 @@ import urllib
 @class_config
 class eqb_sign():
     def __init__(self, env:str = 'test', config = {}) -> None:
-        
+        # 通过配置加载工具加载的配置内容
+        # 后续逻辑直接使用保存下载的config对象, 获取对应的配置项
         self.config = config
+        self.env = env
 
+        # 通过环境参数加载当前e签宝执行环境
         eqb = self.config['eqb'][env]
 
         self.header = {
@@ -65,18 +69,31 @@ class eqb_sign():
     def uploadFile(self, putUrl: str, md5: str, absPath: str):
         """
         上传选中的文件
+        PUT请求，单独处理
         @param putUrl: 由 #fetchUpdateFileUrl 调用e签宝返回的上传地址
         """
+        with open(absPath, 'rb') as file:  
+            file_content = file.read()  
+
+        host = self.config['eqb'][self.env]['upload']['host']
+
         headers = {
             'Content-MD5': md5,
             'Content-Type': 'application/octet-stream',
             'Accept': '*/*',
-            'Host': self.host,
+            'Host': host,
             'Accept-Encoding': 'gzip, deflate, br',
-            'Connection': 'keep-alive'
+            'Connection': 'keep-alive',
+            'Content-Length': len(file_content)
         }
-        conn = http.client.HTTPSConnection(self.host)
-        conn.request('PUT', putUrl, headers=headers)
+        conn = http.client.HTTPSConnection(host)
+
+        if putUrl.startswith('http'):
+            # https:// 最后一个 / 所在位置是7， 所以从第8个位置开始找 /，就是找到路径开头的位置
+            putUrl = putUrl[putUrl.find('/', 8):]
+        conn.request('PUT', putUrl, body=file_content, headers=headers)
+        response = conn.getresponse()
+        return response.code, response.reason
 
 
     def fetchSignUrl(self, flowId, mobile):
@@ -408,7 +425,7 @@ def md5_base64_encode(body_raw):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.INFO)
-    client = eqb_sign()
+    client: eqb_sign = eqb_sign()
 
     from helper.file_helper import get_file_content_md5
     import os
@@ -426,3 +443,7 @@ if __name__ == '__main__':
     print(md5)
     print(fileId)
     print(fileUploadUrl)
+
+    code, reason = client.uploadFile(fileUploadUrl, md5, absPath)
+    if code != 200:
+        print(f'上传失败! 失败原因{code}: {reason}')
