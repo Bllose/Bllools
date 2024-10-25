@@ -128,5 +128,5 @@ if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
     myConfig = config([type.FILE])
     myConfig.load()
-    app_id = myConfig.get('eqb.pro.appId')
+    app_id = myConfig.get('eqb')['pro']['appId']
     print(app_id)

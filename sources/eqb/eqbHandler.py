@@ -8,8 +8,7 @@ e签宝补救措施
 """
 
 from datetime import datetime, timezone  
-from helper.config_helper import class_config
-from helper.config_helper import config
+from config_center.config import class_config
 import hashlib  
 import base64
 import hmac
@@ -440,8 +439,8 @@ if __name__ == '__main__':
     md5 = get_file_content_md5(absPath)
 
     fileId, fileUploadUrl = client.fetchUpdateFileUrl(md5, fileName, file_size)
-    print(md5)
-    print(fileId)
+    print(f'md5: {md5}')
+    print(f'fileId: {fileId}')
     print(fileUploadUrl)
 
     code, reason = client.uploadFile(fileUploadUrl, md5, absPath)

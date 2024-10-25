@@ -3,11 +3,11 @@
 TPSH003
 97份合同重新生成
 """
-from tcl.tools.eqbHandler import eqb_sign as signer
-from tcl.tools.eqbHandler import environment
+from eqb.eqbHandler import eqb_sign as signer
+from eqb.eqbHandler import environment
 import json
 import logging
-from helper.config_helper import config
+from config_center.config import config
 
 MY_CONFIG = None
 

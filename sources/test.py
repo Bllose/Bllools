@@ -1,5 +1,5 @@
-from helper.config_helper import dConfig
-from helper.config_helper import class_config
+from config_center.config import dConfig
+from config_center.config import class_config
 
 
 @dConfig()

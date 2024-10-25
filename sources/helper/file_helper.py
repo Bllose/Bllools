@@ -41,6 +41,26 @@ def get_file_content_md5(file_path):
   
 
 if __name__ == '__main__':
-    # 示例用法  
-    absPath = r"C:\Users\bllos\Desktop\太平石化供货合同附件刷新\TPSHHY(2024)ZL00016\起租-租赁合同-附件二.pdf"  
-    print(get_file_content_md5(absPath))
+    # ('TPSH-SF489273252636659712', '{third_flow_id}', '{object_id}', 'TPSH008', '起租-租赁合同-附件二', 'e签宝短信签约', '', 3, '-', 2, 'CHECK', 0, '', '', NOW(), now(), 'TPSH-TPSHHY(2024)ZL00521', '', now(), now(), '{sign_url}', 'v1', 'TPSH008#image', 0, '{third_file_id}', '{cosign_url}'),
+    # ('TPSH-SF489273252636659712', '{third_flow_id}', '{object_id}', 'TPSH007', '起租-供货合同-附件二', 'e签宝短信签约', '', 3, '-', 2, 'CHECK', 0, '', '', NOW(), NOW(), 'TPSH-TPSHHY(2024)ZL00521', '', NOW(), NOW(), '{sign_url}', 'v1', 'TPSH007#image', 0, '{third_file_id}', '{cosign_url}');
+    absPath = r"C:\Users\bllos\Desktop\tpsh007008SignedFiles.xlsx"  
+    datas = readExcelSheet1(absPath=absPath)
+    
+    values = []
+    for data in datas:
+        contractName = data['contractName']
+        objectId = data['objectId']
+        batchNo = data['batchNo']
+        match contractName:
+            case '起租-供货合同-附件二':
+                # TPSH007
+                values.append(f"('-', '-', '{objectId}', 'TPSH007', '起租-供货合同-附件二', 'e签宝短信签约', '', 3, '-', 2, 'CHECK', 0, '', '', NOW(), now(), 'TPSH-{batchNo}', '', now(), now(), '-', 'v1', 'TPSH007#image', 0, '-', '-')")
+            case '起租-租赁合同-附件二':
+                # TPSH008
+                values.append(f"('-', '-', '{objectId}', 'TPSH008', '起租-租赁合同-附件二', 'e签宝短信签约', '', 3, '-', 2, 'CHECK', 0, '', '', NOW(), now(), 'TPSH-{batchNo}', '', now(), now(), '-', 'v1', 'TPSH008#image', 0, '-', '-')") 
+    print('INSERT INTO `xk-contract`.`sf_sign_flow`')
+    print("(sign_flow_no, third_flow_id, object_id, scene_code, scene_name, sign_type, signer, channel, template_code, sign_method, sign_flow_phase, is_delete, creator, updator, create_time, update_time, object_no, fill_element, flow_start_time, flow_end_time, sign_url, version, image_code, is_reuse, third_file_id, cosign_url)")
+    print('values')
+    for value in values:
+        print(value + ',')
+        
