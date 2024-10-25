@@ -59,6 +59,8 @@ class config():
                 return True
             case 'xml':
                 pass
+            case 'properties':
+                pass
         return False
 
     def load_yaml_config_file(self, absPath: str) -> None:
@@ -76,7 +78,21 @@ class config():
 
 
     def loadSystemConfig(self):
+        import sys
+        sys_type = sys.platform
+        match(sys_type):
+            case 'win32':
+                self.loadWindowSystemConfig()
         pass
+
+    def loadWindowSystemConfig(self):
+        """
+        加载Windows
+        """
+        import os
+        self.config.update({key: value for key, value in os.environ.items()})
+
+
 
     def loadEnvironmentConfig(self):
         pass
@@ -126,7 +142,7 @@ def class_config(cls):
 
 if __name__ == '__main__':
     logging.basicConfig(level=logging.DEBUG)
-    myConfig = config([type.FILE])
+    myConfig = config()
     myConfig.load()
     app_id = myConfig.get('eqb')['pro']['appId']
     print(app_id)
