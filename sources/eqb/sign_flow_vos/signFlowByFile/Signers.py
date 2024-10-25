@@ -1,5 +1,5 @@
 from attr import define, field
-from eqb.sign_flow_vos.signers.SignFields import SignField
+from eqb.sign_flow_vos.signFlowByFile.signers.SignFields import SignField
 
 @define
 class Signers():
