@@ -1,0 +1,19 @@
+import json
+
+def deep_clean_null(target) -> object:
+    """
+    深度清理json报文中值为null的字段
+    """
+    if isinstance(target, dict):
+        return {k: deep_clean_null(v) for k, v in target.items() if v is not None}
+    elif isinstance(target, list):
+        return [deep_clean_null(item) for item in target if item is not None and len(item) > 0]
+    else :
+        return target
+    
+if __name__ == '__main__':
+    target = '{"docs":[{"fileId":"e865f945365f4db7badd18828b5e98a0","fileName":"极光平台用户授权书20241218.pdf"},{"fileId":"3b3783a9ccdb477c84d1414ec5121b3a","fileName":"光伏电站屋顶租赁协议（B端无共签人）20241128_release.pdf"},{"fileId":"074c7e89d3864603b4be62d37a04417e","fileName":"TCL光伏科技”闪耀双旦  金满万家”活动授权书20241127.pdf"}],"flowInfo":{"autoArchive":true,"autoInitiate":true,"businessScene":"极光平台用户授权书, 光伏电站屋顶租赁协议","flowConfigInfo":{"noticeDeveloperUrl":"https://aurora-test6-callback.tclpv.com/api/app/contract/unify/signed/callback/eqb","noticeType":null,"redirectUrl":"","signPlatform":"1","willTypes":["FACE_TECENT_CLOUD_H5"],"personAvailableAuthTypes":null,"imageCode":null}},"signers":[{"platformSign":false,"signOrder":1,"signerAccount":{"signerAccountId":"b432e3f5a9084a7b9fe30f8ff6be1096","authorizedAccountId":null,"noticeType":null},"signfields":[{"autoExecute":false,"actorIndentityType":null,"fileId":"e865f945365f4db7badd18828b5e98a0","handDrawnWay":1,"sealType":"0","signDateBean":{"addSignTime":null,"fontSize":null,"format":null,"posPage":3,"posX":420.0,"posY":173.0},"signType":null,"posBean":{"posPage":"3","posX":460.0,"posY":218.0},"width":null,"sealId":null,"signDateBeanType":2}],"thirdOrderNo":null},{"platformSign":false,"signOrder":1,"signerAccount":{"signerAccountId":"b432e3f5a9084a7b9fe30f8ff6be1096","authorizedAccountId":null,"noticeType":null},"signfields":[{"autoExecute":false,"actorIndentityType":null,"fileId":"3b3783a9ccdb477c84d1414ec5121b3a","sealType":"0","handDrawnWay":1,"signDateBean":{"addSignTime":null,"fontSize":null,"format":null,"posPage":5,"posX":134.12,"posY":81.95825},"signType":null,"posBean":{"posPage":"5","posX":194.12,"posY":173.63928},"width":null,"sealId":null,"signDateBeanType":2}],"thirdOrderNo":null},{"platformSign":false,"signOrder":1,"signerAccount":{"signerAccountId":"b432e3f5a9084a7b9fe30f8ff6be1096","authorizedAccountId":null,"noticeType":null},"signfields":[{"autoExecute":false,"actorIndentityType":null,"fileId":"3b3783a9ccdb477c84d1414ec5121b3a","sealType":"0","signDateBean":null,"signType":null,"handDrawnWay":1,"posBean":{"posPage":"6","posX":158.88,"posY":436.43927},"width":null,"sealId":null,"signDateBeanType":null}],"thirdOrderNo":null},{"platformSign":true,"signOrder":2,"signerAccount":null,"signfields":[{"autoExecute":true,"actorIndentityType":"2","fileId":"3b3783a9ccdb477c84d1414ec5121b3a","sealType":null,"signDateBean":null,"signType":null,"posBean":{"posPage":"5","posX":214.12,"posY":127.799255},"width":null,"sealId":"74a1c4c5-1ba1-43fe-9b70-fb6ce7121d7e","signDateBeanType":null}],"thirdOrderNo":null},{"platformSign":false,"signOrder":1,"signerAccount":{"signerAccountId":"b432e3f5a9084a7b9fe30f8ff6be1096","authorizedAccountId":null,"noticeType":null},"signfields":[{"autoExecute":false,"actorIndentityType":null,"fileId":"074c7e89d3864603b4be62d37a04417e","sealType":"0","signDateBean":{"addSignTime":null,"fontSize":null,"format":null,"posPage":1,"posX":416.48,"posY":223.85004},"signType":null,"posBean":{"posPage":"1","posX":454.6,"posY":272.89},"width":null,"sealId":null,"signDateBeanType":2}],"thirdOrderNo":null}],"atts":null}'
+    targetJson = json.loads(target)
+    print(json.dumps(deep_clean_null(target=targetJson), ensure_ascii=False))
+    # from pprint import pprint
+    # pprint(json.dumps(deep_clean_null(target=targetJson), ensure_ascii=False))

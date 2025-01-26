@@ -1,0 +1,17 @@
+[build-system]
+requires = [ "poetry-core",]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "bllose"
+version = "0.1.1"
+description = "配置模块"
+authors = [ "Bllose",]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.8"
+javaproperties = "==0.8.2"
+PyYAML = "==6.0.2"
+setuptools = "==69.5.1"
