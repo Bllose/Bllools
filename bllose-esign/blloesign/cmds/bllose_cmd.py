@@ -4,6 +4,7 @@ from rich.console import Console
 from bllper.timeHelper import formatter
 from bllper.JsonHelper import deep_clean_null
 from bllper.tokenHelper import generate_token_with_expiry, load_private_key_from_file, load_public_key, PUBLIC_KEY, verify_token
+from bllper.sysHelper import git_proxy_settings
 from blloesign.cmds.commandSets.sys_command_sets import CustomInitCommandSet
 
 
@@ -20,6 +21,27 @@ class bllose_cmd(cmd2.Cmd):
         
         self.console = Console()
         self.aliases['time'] = 'format'
+
+    @cmd2.with_category('代理')
+    def do_gitproxy(self, args):
+        """
+        设置git代理
+        """
+        http_setting_string, https_setting_string = git_proxy_settings()
+        if http_setting_string and https_setting_string:
+            self.console.print(f'[green]{http_setting_string}[/green]')
+            self.console.print(f'[green]{https_setting_string}[/green]')
+        else:
+            self.console.print('[red]未启用代理服务器[/red]')
+
+    @cmd2.with_category('代理')
+    def do_unproxy(self, args):
+        """
+        取消git代理
+        """
+        self.console.print('git config --global --unset http.proxy')
+        self.console.print('git config --global --unset https.proxy')
+    
 
     json_parser = cmd2.Cmd2ArgumentParser()
     json_parser.add_argument('params', nargs=1, help='json字符串中null对象全部清除掉')

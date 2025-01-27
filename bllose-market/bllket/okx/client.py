@@ -22,7 +22,7 @@ class Client(object):
             logging.info(f'代理服务器地址: {proxy_settings["proxy_server"]}')
             return {
                 'http': 'http://' + proxy_settings['proxy_server'],
-                'https': 'https://' + proxy_settings['proxy_server']
+                'https': 'http://' + proxy_settings['proxy_server']
             }
         else:
             logging.info('未启用代理服务器')
@@ -50,9 +50,9 @@ class Client(object):
         # send request
         response = None
 
-        logging.debug("url:", url)
-        logging.debug("headers:", header)
-        logging.debug("body:", body)
+        logging.debug(f"url: {url}")
+        logging.debug(f"headers: {header}")
+        logging.debug(f"body: {body}")
 
         if method == c.GET:
             response = requests.get(url, headers=header, proxies=self._get_proxy())

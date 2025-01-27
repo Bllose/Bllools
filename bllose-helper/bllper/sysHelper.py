@@ -32,6 +32,20 @@ def get_windows_proxy_settings():
 
     return proxy_settings
 
+
+def git_proxy_settings():
+    """
+    获取当前系统代理设置，并返回适用于 Git 的代理设置字符串
+    """
+    proxy_settings = get_windows_proxy_settings()
+    if proxy_settings["proxy_enabled"]:
+        http_setting_string = f'git config --global http.proxy http://{proxy_settings["proxy_server"]}'
+        https_setting_string = f'git config --global https.proxy http://{proxy_settings["proxy_server"]}'
+        return http_setting_string, https_setting_string
+    else:
+        return None, None
+
+
 def main():
     port = input("请输入要检查的端口号: ")
     port = int(port)
