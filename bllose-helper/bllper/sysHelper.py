@@ -1,4 +1,36 @@
 import psutil
+import winreg
+
+def get_windows_proxy_settings():
+    proxy_settings = {
+        "proxy_enabled": False,
+        "proxy_server": None,
+        "proxy_bypass": None
+    }
+
+    try:
+        # 打开用户级别的 Internet 设置注册表项
+        key = winreg.OpenKey(winreg.HKEY_CURRENT_USER,
+                             r"Software\Microsoft\Windows\CurrentVersion\Internet Settings")
+
+        # 获取代理启用状态
+        proxy_enable, _ = winreg.QueryValueEx(key, "ProxyEnable")
+        if proxy_enable:
+            proxy_settings["proxy_enabled"] = True
+
+            # 获取代理服务器地址
+            proxy_server, _ = winreg.QueryValueEx(key, "ProxyServer")
+            proxy_settings["proxy_server"] = proxy_server
+
+            # 获取绕过代理的地址列表
+            proxy_bypass, _ = winreg.QueryValueEx(key, "ProxyOverride")
+            proxy_settings["proxy_bypass"] = proxy_bypass
+
+        winreg.CloseKey(key)
+    except (FileNotFoundError, OSError, ValueError):
+        pass
+
+    return proxy_settings
 
 def main():
     port = input("请输入要检查的端口号: ")
@@ -28,4 +60,8 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # 调用函数获取代理设置
+    proxy_info = get_windows_proxy_settings()
+    print("代理是否启用:", proxy_info["proxy_enabled"])
+    print("代理服务器地址:", proxy_info["proxy_server"])
+    print("绕过代理的地址列表:", proxy_info["proxy_bypass"])

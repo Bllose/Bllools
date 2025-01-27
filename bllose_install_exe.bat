@@ -1,1 +1,1 @@
- pyinstaller -F bllose/cmds/bllose_cmd.py
+ pyinstaller -F bllose-esign/blloesign/cmds/bllose_cmd.py
