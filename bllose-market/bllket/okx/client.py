@@ -19,13 +19,13 @@ class Client(object):
     def _get_proxy(self):
         proxy_settings = get_windows_proxy_settings()
         if proxy_settings['proxy_enabled']:
-            logging.info(f'代理服务器地址: {proxy_settings["proxy_server"]}')
+            logging.debug(f'代理服务器地址: {proxy_settings["proxy_server"]}')
             return {
                 'http': 'http://' + proxy_settings['proxy_server'],
                 'https': 'http://' + proxy_settings['proxy_server']
             }
         else:
-            logging.info('未启用代理服务器')
+            logging.debug('未启用代理服务器')
             return {}
             
 
