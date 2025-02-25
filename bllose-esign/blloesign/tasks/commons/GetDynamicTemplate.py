@@ -131,7 +131,7 @@ def uploadAndConvert2Html(abs_path: str, convertToHTML: bool = False, env: str =
     """
     root = os.path.dirname(abs_path)
     fileName = os.path.basename(abs_path)
-    client = eqb_sign(env=EqbEnum.of(env).value)
+    client = eqb_sign(env=EqbEnum.theCodeOf(env))
     templateId, fileId = upload_the_file(root=root, curFileName=fileName, client=client, convertToHTML=convertToHTML)
     return templateId, fileId
 

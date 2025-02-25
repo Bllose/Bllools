@@ -173,7 +173,7 @@ class AutoLoadCommandSet(CommandSet):
         """
         abs_path = args.params[0]
         if not os.path.isfile(abs_path):
-            abs_path = os.getcwd + os.sep + abs_path
+            abs_path = os.getcwd() + os.sep + abs_path
             if not os.path.isfile(abs_path):
                 self.console.print(f'文件不存在: [bold red]{args.params[0]}[/bold red]')
         if args.convert:
@@ -332,7 +332,7 @@ class AutoLoadCommandSet(CommandSet):
         if not params:
             self.console.print(f'当前环境[bold on_yellow]{self.env}[/bold on_yellow]')
             return
-        target = EqbEnum.of(params[0]).value
+        target = EqbEnum.theCodeOf(params[0])
         if target == self.env:
             self.console.print(f'维持原环境[dim cyan]{self.env}[/dim cyan]')
         else:

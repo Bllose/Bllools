@@ -7,6 +7,7 @@ import json
 from blloesign.tasks.commons.GetSignUrlAfterMobileChanged import getTheNewSignUrl
 from blloesign.tasks.commons.leaseContract import getSignUrl
 from blloesign.tasks.commons.auth4Info import establish_contract_file
+from blloesign.tasks.task20250120 import analysis_the_data
 from blloesign.esign.Client import eqb_sign
 from rich.console import Console
 from rich.text import Text
@@ -24,6 +25,18 @@ class AutoLoadTaskSet(CommandSet):
         self.env = 'test'
         set_title("e签宝 -> 测试环境")
         self.local_save_path = '/temp/download'
+
+    tcl_seal_parser = cmd2.Cmd2ArgumentParser()
+    tcl_seal_parser.add_argument('-s', '--sheets', default='Sheet1', help='需要检查的sheet名称，多个sheet用逗号分隔')
+    tcl_seal_parser.add_argument('-e', '--env', default='pro', help='执行环境，pro:生产环境，test:测试环境，默认生产')
+    tcl_seal_parser.add_argument('param', nargs=1, help='待处理的excel文件名字或绝对路径')
+    @cmd2.with_argparser(tcl_seal_parser)
+    @cmd2.with_category('e签宝任务 - 租赁协议错盖TCL章')
+    def do_contractinfo(self, args):
+        filePath = args.param[-1]
+        sheetList = args.sheets.split(',')
+        analysis_the_data(abs_path=filePath, sheetNameList=sheetList, env=self.env)
+    
 
     contractinfo_parser = cmd2.Cmd2ArgumentParser()
     # contractinfo_parser.add_argument('-o', '--orgId', action='store_true', help='通过orgId进行查询')

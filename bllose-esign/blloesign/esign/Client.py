@@ -28,7 +28,7 @@ class eqb_sign():
         # 通过配置加载工具加载的配置内容
         # 后续逻辑直接使用保存下载的config对象, 获取对应的配置项
         self.config = config
-        self.env = EqbEnum.of(env.lower())
+        self.env = EqbEnum.theCodeOf(env.lower())
 
         # 通过环境参数加载当前e签宝执行环境
         eqb = self.config['eqb'][env]

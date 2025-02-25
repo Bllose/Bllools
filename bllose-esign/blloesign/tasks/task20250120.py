@@ -3,8 +3,8 @@ from openpyxl import load_workbook
 
 
 
-def handler(workbook, sheetName:str):
-    client = eqb_sign(env='pro')
+def handler(workbook, sheetName:str, env:str = 'pro'):
+    client = eqb_sign(env=env)
     print(f'----------> SHEET: {sheetName}')
     sheet = workbook[sheetName]
     for row in sheet.iter_rows(min_row=2, values_only=False):
@@ -26,13 +26,22 @@ def handler(workbook, sheetName:str):
                     row[4].value = sealId
                     print(f'{orderNo}\t{flowId}\t{sealId}\t{sealOwnerId}')
 
+def analysis_the_data(abs_path:str, sheetNameList:list, env:str = 'pro'):
+    workbook = load_workbook(abs_path, env=env)
+    [handler(workbook, sheetName) for sheetName in sheetNameList]
+    workbook.save('output.xlsx')
 
-workbook = load_workbook(r'C:\Users\bllos\Desktop\待检查数据.xlsx')
 
-handler(workbook, '检查是否盖了惠州TCL')
-handler(workbook, '泰安沛辉太阳能发电有限公司')
+if __name__ == '__main__':
+    # workbook = load_workbook(r'C:\Users\bllos\Desktop\待检查数据.xlsx')
 
-workbook.save('output.xlsx')
+    # handler(workbook, '检查是否盖了惠州TCL')
+    # handler(workbook, '泰安沛辉太阳能发电有限公司')
+    # workbook.save('output.xlsx')
+
+    analysis_the_data(r'C:\Users\bllos\Desktop\待检查数据.xlsx', ['检查是否盖了惠州TCL', '泰安沛辉太阳能发电有限公司'])
+
+    
 
 
     

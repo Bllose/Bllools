@@ -65,5 +65,7 @@ class eqb_cmd(cmd2.Cmd):
         return is_valid
 
 if __name__ == '__main__':
+    # import logging
+    # logging.basicConfig(level=logging.DEBUG)
     my_command = CustomInitCommandSet('e签宝')
     eqb_cmd(command_sets=[my_command]).cmdloop()

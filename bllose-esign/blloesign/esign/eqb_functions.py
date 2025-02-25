@@ -20,7 +20,7 @@ def template_function(env, templateId) -> str:
     Returns:
         str: 如果成功就是一个http开头的url，如果失败就是空
     """
-    client = eqb_sign(EqbEnum.of(env).value)
+    client = eqb_sign(EqbEnum.theCodeOf(env))
     shortUrl = client.docTemplateEditUrl(templateId)
     post_handler(shortUrl=shortUrl)
     return shortUrl
@@ -102,7 +102,7 @@ def identity_detail(flowId:str, psnId:str = '', psnAccount:str = '', psnIDCardNu
     Returns:
         dict: 认证信息列表
     """
-    client = eqb_sign(EqbEnum.of(env).value)
+    client = eqb_sign(EqbEnum.theCodeOf(env))
     data = client.person_info_v3(psnAccount=psnAccount, psnId=psnId, psnIDCardNum=psnIDCardNum)
     if len(data) < 1:
         return {}
@@ -132,7 +132,7 @@ def sign_flow_identity_list(flowId: str, env: str = 'test') -> list:
     """
     通过签约流水，拿到签署人的刷脸信息
     """
-    client = eqb_sign(EqbEnum.of(env).value)
+    client = eqb_sign(EqbEnum.theCodeOf(env))
     responseJson = client.getSignFlowDetail(signFlowId=flowId)
     data = responseJson['data']
     signers = data['signers']

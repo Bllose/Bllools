@@ -1,5 +1,8 @@
 import psutil
 import winreg
+import logging
+import json
+from functools import wraps
 
 def get_windows_proxy_settings():
     proxy_settings = {
@@ -32,6 +35,39 @@ def get_windows_proxy_settings():
 
     return proxy_settings
 
+def _get_proxy():
+    proxy_settings = get_windows_proxy_settings()
+    if proxy_settings['proxy_enabled']:
+        logging.debug(f'代理服务器地址: {proxy_settings["proxy_server"]}')
+        return {
+            'http': 'http://' + proxy_settings['proxy_server'],
+            'https': 'http://' + proxy_settings['proxy_server']
+        }
+    else:
+        logging.debug('未启用代理服务器')
+        return {}
+
+def sysProxy() -> dict:
+    """
+    系统代理装饰器
+    为请求添加proxies参数，作为服务器代理
+    如果系统代理未启用，则添加一个空的dict
+    """
+    def decorator(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            load_proxy(kwargs)
+            result = func(*args, **kwargs)
+            return result
+        return wrapper
+    return decorator
+
+def load_proxy(kwargs):
+    theProxies = _get_proxy()
+    if 'proxies' not in kwargs:
+        kwargs['proxies'] = {}
+    kwargs['proxies'].update(theProxies)
+    # logging.debug(f'加载系统代理: {json.dumps(kwargs.get('proxies'))}')
 
 def git_proxy_settings():
     """

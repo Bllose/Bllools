@@ -22,6 +22,10 @@ class EqbEnum(Enum):
             if curEnv.value[0] == env.lower():
                 return curEnv
         return cls.TEST
+    
+    @classmethod
+    def theCodeOf(cls, env):
+        return cls.of(env).name.lower()
 
 
 if __name__ == '__main__':
