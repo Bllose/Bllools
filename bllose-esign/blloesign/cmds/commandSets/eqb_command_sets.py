@@ -9,6 +9,7 @@ from blloesign.esign.esign_enums.file_status import FileStatus
 from blloesign.esign.esign_enums.env_enum import EqbEnum
 from blloesign.esign.esign_enums.identity_type import IdentityEnum
 from blloesign.esign.eqb_functions import sign_flow_identity_list, download_and_check_image
+from blloesign.cmds.commandSets.EqbObservable import Observable
 from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
@@ -22,14 +23,22 @@ from blloesign.esign.eqb_functions import (
 
 
 @with_default_category('e签宝命令')
-class AutoLoadCommandSet(CommandSet):
-    def __init__(self):
-        super().__init__()
+class AutoLoadCommandSet(CommandSet, Observable):
+    def __init__(self, parent):
+        CommandSet.__init__(self)
+        Observable.__init__(self)
         self.console = Console()
+        self.parent = parent
         self.env = 'test'
         set_title("e签宝 -> 测试环境")
         self.local_save_path = '/temp/download'
         self.urlStyle = Style(color="#0000FF", underline=True)
+    
+    def _update_env(self, new_env):
+        """
+        接收全局环境变量广播
+        """
+        self.env = new_env
 
     identity_parser = cmd2.Cmd2ArgumentParser()
     # company_parser.add_argument('-o', '--orgId', action='store_true', help='通过orgId进行查询')
@@ -308,6 +317,7 @@ class AutoLoadCommandSet(CommandSet):
         else:
             self.console.print(f'环境切换 [strike white]{self.env}[/strike white] [blink2 red]->[/blink2 red] [bold green]pro[/bold green]')
             self.env = 'pro'
+        self.parent._update_env(self.env)
         set_title("e签宝 -> 生产环境")
 
     def do_test(self, args):
@@ -319,6 +329,7 @@ class AutoLoadCommandSet(CommandSet):
         else:
             self.console.print(f'环境切换 [strike white]{self.env}[/strike white] [blink2 red]->[/blink2 red] [bold green]test[/bold green]')
             self.env = 'test'
+        self.parent._update_env(self.env)
         set_title("e签宝 -> 测试环境")
 
     change_env_parser = cmd2.Cmd2ArgumentParser()

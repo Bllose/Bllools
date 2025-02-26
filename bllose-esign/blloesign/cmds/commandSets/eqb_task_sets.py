@@ -9,22 +9,82 @@ from blloesign.tasks.commons.leaseContract import getSignUrl
 from blloesign.tasks.commons.auth4Info import establish_contract_file
 from blloesign.tasks.task20250120 import analysis_the_data
 from blloesign.esign.Client import eqb_sign
+from blloesign.tasks.commons.GetSignUrlAfterMobileChanged import getTheNewSignUrl
 from rich.console import Console
 from rich.text import Text
 from rich.panel import Panel
 from rich.progress import Progress
 
 from blloesign.esign.eqb_functions import set_title
+from blloesign.cmds.commandSets.EqbObservable import Observable
 
 
 @with_default_category('e签宝任务')
-class AutoLoadTaskSet(CommandSet):
-    def __init__(self):
-        super().__init__()
+class AutoLoadTaskSet(CommandSet, Observable):
+    def __init__(self, parent):
+        CommandSet.__init__(self)
+        Observable.__init__(self)
         self.console = Console()
+        self.parent = parent
         self.env = 'test'
         set_title("e签宝 -> 测试环境")
         self.local_save_path = '/temp/download'
+    
+    def _update_env(self, new_env):
+        """
+        接收全局变量广播
+        """
+        self.env = new_env
+
+    latestUrl_parser = cmd2.Cmd2ArgumentParser()
+    # contractinfo_parser.add_argument('-o', '--orgId', action='store_true', help='通过orgId进行查询')
+    latestUrl_parser.add_argument('param', nargs=1, help='签约请求参数:GF250206094515012561,林乌番,13806943149,350625195301151535,林丽秀,13860807719,350625197711041549,0608e88a61704cc0a75d9ff01eb62c9b,PCI001,PC002_image')
+    @cmd2.with_argparser(latestUrl_parser)
+    @cmd2.with_category('e签宝任务 - 获取最新签约地址')
+    def do_getLatestUrl(self, args):
+        params = args.param[-1]
+        paramSplit = params.split(',')
+        orderNo = paramSplit[0]
+        lesseeName = paramSplit[1]
+        lesseeMobile = paramSplit[2]
+        lesseeIdno = paramSplit[3]
+        cosignerName = paramSplit[4]
+        cosignerMobile = paramSplit[5]
+        cosignerIdno = paramSplit[6]
+        thirdFlowId = paramSplit[7]
+        sceneCode = paramSplit[8]
+        imageCode = paramSplit[9]
+
+        lesseeUrl = getTheNewSignUrl(name=lesseeName, mobile=lesseeMobile, creditId=lesseeIdno, flowId=thirdFlowId, env=self.env)
+        cosignerUrl = getTheNewSignUrl(name=cosignerName, mobile=cosignerMobile, creditId=cosignerIdno, flowId=thirdFlowId, env=self.env)
+
+        conclusion = Text()
+        conclusion.append("承租人 -> " + lesseeName + ">" + lesseeMobile + "签约地址: ", style="bold yellow")
+        conclusion.append(lesseeUrl, style="bold green")
+        conclusion.append("\n")
+        conclusion.append("共签人 -> " + cosignerName + ">" + cosignerMobile + "签约地址: ", style="bold yellow")
+        conclusion.append(cosignerUrl, style="bold green")
+        panel = Panel(conclusion, title=orderNo + "最新签约地址")
+        self.console.print(panel)
+    
+    @cmd2.with_category('e签宝任务 - 获取最新签约地址')
+    def do_urlsql(self, args):
+        self.console.print(f"select concat_ws(',', order_no, ex_customer_name, ex_customer_mobile, ex_customer_idno, cosigner_name, cosigner_phone, cosigner_idno, third_flow_id, scene_code, image_code) from (")
+        self.console.print(f"select a.order_no, ")
+        self.console.print(f"       a.ex_customer_name, ")
+        self.console.print(f"       AES_DECRYPT(from_base64(substr(a.ex_customer_mobile,3)),from_base64('XDM4Vvla+6kxP++4yOXb5A==')) 'ex_customer_mobile', ")
+        self.console.print(f"       AES_DECRYPT(from_base64(substr(a.ex_customer_idno,3)),from_base64('XDM4Vvla+6kxP++4yOXb5A==')) 'ex_customer_idno', ")
+        self.console.print(f"       b.cosigner_name, ")
+        self.console.print(f"       AES_DECRYPT(from_base64(substr(b.cosigner_phone,3)),from_base64('XDM4Vvla+6kxP++4yOXb5A==')) 'cosigner_phone', ")
+        self.console.print(f"       AES_DECRYPT(from_base64(substr(b.cosigner_idno,3)),from_base64('XDM4Vvla+6kxP++4yOXb5A==')) 'cosigner_idno', ")
+        self.console.print(f"       c.third_flow_id,")
+        self.console.print(f"       c.scene_code,")
+        self.console.print(f"       c.image_code")
+        self.console.print(f"from `xk-order`.`order` a left join `xk-order`.`order_cosigner` b on a.order_no = b.order_no and b.is_delete = false")
+        self.console.print(f"                          left join `xk-contract`.`sf_sign_flow` c on a.order_no = c.object_no and c.is_delete = false")
+        self.console.print(f"where a.order_no = '替换成需要查询的订单号'")
+        self.console.print(f"and c.sign_flow_phase = 'NEW'")
+        self.console.print(f") final;")
 
     tcl_seal_parser = cmd2.Cmd2ArgumentParser()
     tcl_seal_parser.add_argument('-s', '--sheets', default='Sheet1', help='需要检查的sheet名称，多个sheet用逗号分隔')
