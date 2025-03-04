@@ -1,11 +1,14 @@
 import cmd2
 import json
 from rich.console import Console
+from rich.text import Text
+from rich.panel import Panel
 from bllper.timeHelper import formatter
 from bllper.JsonHelper import deep_clean_null
 from bllper.tokenHelper import generate_token_with_expiry, load_private_key_from_file, load_public_key, PUBLIC_KEY, verify_token
 from bllper.sysHelper import git_proxy_settings
 from blloesign.cmds.commandSets.sys_command_sets import CustomInitCommandSet
+from bllospider.tcl.SpringBootAdmin import get_http_address_by_env
 
 
 class bllose_cmd(cmd2.Cmd):
@@ -21,6 +24,34 @@ class bllose_cmd(cmd2.Cmd):
         
         self.console = Console()
         self.aliases['time'] = 'format'
+
+    
+    server_info_parser = cmd2.Cmd2ArgumentParser()
+    server_info_parser.add_argument('-e', '--env', type=str, default='test3', help='环境名称')
+    server_info_parser.add_argument('params', nargs=1, help='服务名称')
+    @cmd2.with_argparser(server_info_parser)
+    @cmd2.with_category('TCL')
+    def do_host(self, args):
+        """
+        获取TCL环境的服务器信息
+        """
+        target = args.params[0]
+        if target is None or len(target) < 1:
+            return
+        env =args.env
+        response = get_http_address_by_env(env)
+
+        conclusion = Text()    
+        for name, url in response.items():
+            if target in name:
+                conclusion.append(f'{name} -> {url}', style="bold green")
+            else:
+                conclusion.append(f'{name} -> {url}', style="#808080")
+            conclusion.append('\n')
+        
+        panel = Panel(conclusion, title=f'{env}环境服务器信息', expand=False)
+        self.console.print(panel)
+
 
     @cmd2.with_category('代理')
     def do_gitproxy(self, args):
