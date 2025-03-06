@@ -54,6 +54,9 @@ class FileProcessor:
 
 
 class FileReader:
+    """
+    逐行读取文件
+    """
     def each_row_handler(self, curRow:str):
         logging.debug('子类实现该方法，实现自定义的行处理逻辑')
         pass
