@@ -66,4 +66,4 @@ def get_pages(token:str = '', fundId:str = '134') -> list:
 
 if __name__ == '__main__':
    token = get_token()
-   print(get_pages(token))
+   print(get_pages(token, fundId = '135'))

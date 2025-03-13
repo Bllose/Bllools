@@ -77,4 +77,5 @@ def get_http_address_by_env(env:str = 'test1') -> dict:
 
 
 if __name__ == '__main__':
-    print(get_http_address_by_env('test1'))
+    print(get_jsessionid('test6')  )
+    # print(get_http_address_by_env('test1'))

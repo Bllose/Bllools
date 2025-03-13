@@ -1,0 +1,156 @@
+<?xml version="1.0"?>
+<project xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd" xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.tcl.feignagent</groupId>
+    <artifactId>bllose-agent</artifactId>
+    <version>1.0.0</version>
+  </parent>
+  <groupId>com.tcl.feignagent</groupId>
+  <artifactId>agent8</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <name>agent8</name>
+  <url>http://maven.apache.org</url>
+
+  <properties>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <ribbon.version>2.3.0</ribbon.version>
+    <java.version>1.8</java.version>
+    <spring-boot.version>2.3.7.RELEASE</spring-boot.version>
+  </properties>
+
+  <dependencyManagement>
+      <dependencies>
+          <dependency>
+              <groupId>org.springframework.boot</groupId>
+              <artifactId>spring-boot-dependencies</artifactId>
+              <version>${spring-boot.version}</version>
+              <type>pom</type>
+              <scope>import</scope>
+          </dependency>
+      </dependencies>
+  </dependencyManagement>
+
+  <dependencies>
+    <dependency>
+      <groupId>org.javassist</groupId>
+      <artifactId>javassist</artifactId>
+      <version>3.20.0-GA</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.netflix.ribbon</groupId>
+      <artifactId>ribbon-loadbalancer</artifactId>
+      <version>${ribbon.version}</version>
+      <scope>provided</scope>
+      <exclusions>
+        <exclusion>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+        </exclusion>
+    </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.netflix.ribbon</groupId>
+      <artifactId>ribbon-core</artifactId>
+      <version>${ribbon.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.cloud</groupId>
+      <artifactId>spring-cloud-starter-netflix-ribbon</artifactId>
+      <version>2.2.6.RELEASE</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>4.5.13</version>
+    </dependency>
+
+    <dependency>
+      <groupId>com.alibaba</groupId>
+      <artifactId>fastjson</artifactId>
+      <version>2.0.31</version>
+      <scope>provided</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>de.codecentric</groupId> 
+      <artifactId>spring-boot-admin-server</artifactId>
+      <version>2.3.1</version>
+      <scope>provided</scope>
+        <exclusions>
+            <exclusion>
+                <artifactId>logback-classic</artifactId>
+                <groupId>ch.qos.logback</groupId>
+            </exclusion>
+            <exclusion>
+              <groupId>com.google.guava</groupId>
+              <artifactId>guava</artifactId>
+          </exclusion>
+        </exclusions>
+    </dependency>
+
+    <dependency>
+			<groupId>org.springframework.cloud</groupId>
+			<artifactId>spring-cloud-starter-openfeign</artifactId>
+      <version>2.2.6.RELEASE</version>
+		</dependency>
+
+    <dependency>
+      <groupId>org.projectlombok</groupId>
+      <artifactId>lombok</artifactId>
+      <version>1.18.16</version>
+    </dependency>
+  </dependencies>
+
+  <build>
+		<plugins>
+    <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-compiler-plugin</artifactId>
+          <version>3.8.1</version>
+          <configuration>
+              <source>${maven.compiler.source}</source>
+              <target>${maven.compiler.target}</target>
+              <encoding>UTF-8</encoding>
+          </configuration>
+      </plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-assembly-plugin</artifactId>
+				<configuration>
+          <finalName>myagent</finalName>
+					<archive>
+            <manifestEntries>
+              <Premain-Class>com.dycjr.xiakuan.FeignAgent</Premain-Class>
+              <Can-Redefine-Classes>true</Can-Redefine-Classes>
+              <Can-Retransform-Classes>true</Can-Retransform-Classes>
+            </manifestEntries>
+					</archive>
+          <appendAssemblyId>false</appendAssemblyId>
+          <!-- 添加自定义打包描述 -->
+          <descriptors>
+              <descriptor>src/assembly/assembly.xml</descriptor>
+          </descriptors>
+				</configuration>
+				<!-- 添加此项后，可直接使用mvn package | mvn install -->
+				<!-- 不添加此项，需直接使用mvn package assembly:single -->
+				<executions>
+					<execution>
+						<id>make-assembly</id>
+						<phase>package</phase>
+						<goals>
+							<goal>single</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
