@@ -1,6 +1,7 @@
 from blloesign.esign.Client import eqb_sign
 import logging
 import json
+from typing import Union
 
 
 def get_request(fileId:str, signerAccountId:str, sealId:str, env:str) -> dict:
@@ -118,20 +119,47 @@ def getAccountId(creditId:str, env:str='test') -> str:
     result_v3 = client.person_info_v3(psnIDCardNum = creditId)
     return result_v3['psnId']
 
-def getOfficialSeal(orgIdCard:str, env:str = 'test') -> str:
+def getOfficialSeal(orgIdCard:str, env:str = 'test') -> Union[str, None]:
     """
     获取项目公司的公章id，e签宝的sealId
     Args:
         orgIdCard(str): 社会统一信用代码
     """
-    client = eqb_sign(env=env)
-    response_json = client.getOrganizationInfo(orgIdCard)
-    orgId = response_json['orgId']
-    seals_json = client.getSealsInfo(orgId=orgId)
-    for seal in seals_json['seals']:
-        alias = seal['alias']
-        if alias == '公章':
-            return seal['sealId']
+    try:
+        client = eqb_sign(env=env)
+        response_json = client.getOrganizationInfo(orgIdCard)
+        if(seals := client.getSealsInfo(orgId=response_json['orgId']).get('seals')):
+            return next(
+                (seal['sealId'] for seal in seals if seal.get('alias') == '公章'),
+                None
+            )
+    except KeyError as e:
+        logging.error(f"响应数据字段缺失: {str(e)}")
+    except Exception as e:
+        logging.error(f"获取公章失败[{orgIdCard}]: {str(e)}")
+    return None
+
+def getContractSeal(orgIdCard: str, env: str = 'test') -> Union[str, None]:  # 修改返回类型声明
+    """获取项目公司的合同专用章ID
+    Args:
+        orgIdCard: 统一社会信用代码（18位）
+    Returns:
+        str: 合同专用章ID，未找到返回None
+    Raises:
+        Exception: API调用失败或数据解析异常
+    """
+    try:
+        client = eqb_sign(env=env)
+        org_info = client.getOrganizationInfo(orgIdCard)
+        if (seals := client.getSealsInfo(orgId=org_info['orgId']).get('seals')):
+            return next(
+                (seal['sealId'] for seal in seals if seal.get('alias') == '合同专用章'),
+                None
+            )
+    except KeyError as e:
+        logging.error(f"响应数据字段缺失: {str(e)}")
+    except Exception as e:
+        logging.error(f"获取合同章失败[{orgIdCard}]: {str(e)}")
     return None
 
 
@@ -149,7 +177,7 @@ def getSignUrl(orgIdCard:str, creditId:str, fileId:str, env:str = 'test') -> tup
             - fileId(str): 合同签署文件id
             - shortUrl(str): 签约短链接
     """
-    seal = getOfficialSeal(orgIdCard=orgIdCard, env=env)
+    seal = getContractSeal(orgIdCard=orgIdCard, env=env)
     if seal is None or len(seal) < 1:
         logging.error(f'社会统一信用代码{orgIdCard}无法从e签宝获取公章信息!')
         return '', '', ''
@@ -172,19 +200,20 @@ def getSignUrl(orgIdCard:str, creditId:str, fileId:str, env:str = 'test') -> tup
 
 if __name__=='__main__':
     # 'c414a2d4-cf7a-4c19-bc13-818714c08fbb'
-    seal = getOfficialSeal(orgIdCard='91360430MACL8M6Q2B')
-    # print(seal)
+    print(getOfficialSeal(orgIdCard='91440881MAE2NUE351', env='pro'))
+    seal = getContractSeal(orgIdCard='91440881MAE2NUE351', env='pro')
+    print(seal)
 
-    psnId = getAccountId(creditId='431026198801130018')
-    # print(psnId)
+    # psnId = getAccountId(creditId='431026198801130018')
+    # # print(psnId)
 
-    fileId = 'be0aafbccc88470ca8ccf043647e1f8a'
-    req = get_request(fileId=fileId, signerAccountId=psnId, sealId=seal, env='test')
-    # print(req)
+    # fileId = 'be0aafbccc88470ca8ccf043647e1f8a'
+    # req = get_request(fileId=fileId, signerAccountId=psnId, sealId=seal, env='test')
+    # # print(req)
 
-    client = eqb_sign()
-    bodyRaw = json.dumps(req)
-    signFlowId = client.createFlowOneStep(bodyRaw=bodyRaw)
+    # client = eqb_sign()
+    # bodyRaw = json.dumps(req)
+    # signFlowId = client.createFlowOneStep(bodyRaw=bodyRaw)
 
-    shortUrl = client.getH5Url(thirdFlowId=signFlowId, psnId=psnId)
-    print(signFlowId, fileId, shortUrl)
+    # shortUrl = client.getH5Url(thirdFlowId=signFlowId, psnId=psnId)
+    # print(signFlowId, fileId, shortUrl)

@@ -280,7 +280,7 @@ and a.order_no = '需要处理的订单号') final;
             for key, value in failed_holder.items():
                 self.console.print(f'[green]{key}[/green] -> [bold red]{value}[/bold red]')
 
-    @cmd2.with_category('e签宝任务')
+    @cmd2.with_category('e签宝任务 - 生僻字 - 屋顶租赁协议重新发起签约')
     def do_sql(self, args):
         self.console.print(f"select CONCAT_WS(' - ', task.image_code, scene_name) as '类型', concat_ws(' ', unified_social_credit_code, ex_customer_idno, id) as '参数' from (")
         self.console.print(f"select a.ex_customer_name, ")
@@ -304,7 +304,7 @@ and a.order_no = '需要处理的订单号') final;
     contract_parser = cmd2.Cmd2ArgumentParser()
     contract_parser.add_argument('params', nargs=4, help='发起签约的参数有且只能有四个，顺序为:社会统一信用代码、身份证、合同服务签约流水id, 文件id\r\n前三个参数使用命令:sql获取')
     @cmd2.with_argparser(contract_parser)
-    @cmd2.with_category('e签宝任务')
+    @cmd2.with_category('e签宝任务 - 生僻字 - 屋顶租赁协议重新发起签约')
     def do_contract(self, args):
         """
         通过部分数据发起新的“屋顶租赁协议”的签约流程
