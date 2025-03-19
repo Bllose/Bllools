@@ -5,15 +5,26 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 
 import org.objectweb.asm.AnnotationVisitor;
-import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;  // This is the correct import
 import org.objectweb.asm.Type;
 
+import com.dycjr.xiakuan.discovery.EnableMyDiscovery;
+import com.dycjr.xiakuan.utils.AnnotationUtil;
+import com.dycjr.xiakuan.utils.ClassUtil;
+
+import javassist.CtClass;
+import javassist.bytecode.ClassFile;
+import javassist.bytecode.ConstPool;
+
 public class MyClassTransformer implements ClassFileTransformer {
 
     static {
+         // 添加动态扫描路径配置
+        System.setProperty("bllose.scan.packages", "com.new.package1,com.new.package2");
+        System.setProperty("logging.level.org.apache.kafka.clients.NetworkClient", "ERROR");
+
         System.out.println("初始化, 添加不注册配置 =============> zookeeper.discovery.register = false");
         System.setProperty("spring.cloud.zookeeper.discovery.register", "false");
 
@@ -26,17 +37,43 @@ public class MyClassTransformer implements ClassFileTransformer {
     public byte[] transform(ClassLoader loader, String className, 
                           Class<?> classBeingRedefined, ProtectionDomain protectionDomain,
                           byte[] classfileBuffer) throws IllegalClassFormatException {
-            if(className != null && className.contains("com/dycjr/xiakuan/order/XkOrderApplication")) {
-                System.out.println("Bllose ================================> 开始分析: " + className);
-                try{
-                ClassReader reader = new ClassReader(classfileBuffer);
-                MyClassVisitor visitor = new MyClassVisitor(Opcodes.ASM9);
-                reader.accept(visitor, 0);
-            }catch(Exception e){
-                e.printStackTrace();
-            }
+        if (className == null || !className.startsWith("com/dycjr")) {
+            return new byte[0];
+        }
+
+        CtClass clazz = ClassUtil.getClass(className);
+
+        if (clazz == null) {
+            return new byte[0];
+        }
+
+        ClassFile classFile = clazz.getClassFile();
+        ConstPool constPool = classFile.getConstPool();
+
+        boolean isChange = false;
+
+        // 如果是 spring boot app，则添加服务发现注解
+        if (AnnotationUtil.anyContains(classFile, Constants.ANNOTATION_SPRING_BOOT_APP)) {
+            // System.out.println("===================发现 spring boot app: " + clazz.getName());
+            isChange |= AnnotationUtil.addAnnotations(classFile, constPool, EnableMyDiscovery.class.getName());
+            // if(isChange) System.out.println("===================添加服务发现注解: " + EnableMyDiscovery.class.getName());
+            return toBytecode(clazz, isChange);
         }
         return null;
+    }
+
+    public byte[] toBytecode(CtClass clazz, boolean isChange) {
+        if (clazz == null || !isChange) {
+            return new byte[0];
+        }
+        try {
+            System.out.println("===================change: " + clazz.getName());
+            return clazz.toBytecode();
+        } catch (Throwable e) {
+            System.out.println("===================change: " + clazz.getName() + " fail.");
+            e.printStackTrace();
+        }
+        return new byte[0];
     }
     
 }

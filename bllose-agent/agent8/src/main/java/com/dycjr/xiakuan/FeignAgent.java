@@ -24,7 +24,7 @@ public class FeignAgent {
                 Method addUrlMethod = URLClassLoader.class.getDeclaredMethod("addURL", URL.class);
                 addUrlMethod.setAccessible(true); // 绕过访问权限检查
                 addUrlMethod.invoke(urlClassLoader, agentJarFile.toURI().toURL());
-                System.out.println("Agent JAR added to system classloader: " + agentJarFile);
+                // System.out.println("Agent JAR added to system classloader: " + agentJarFile);
             } else {
                 System.err.println("System ClassLoader is not a URLClassLoader. Cannot add JAR.");
             }
