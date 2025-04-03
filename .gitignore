@@ -3,6 +3,13 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+*.xlsx
+*.xls
+
 # C extensions
 *.so
 
@@ -13,8 +20,6 @@ __pycache__/
 
 # Distribution / packaging
 .Python
-build/
-develop-eggs/
 dist/
 downloads/
 eggs/
