@@ -1,0 +1,1 @@
+pyinstaller -F --ico=icons/application/teuvo-6w8c3-001.ico bllose-application/bllosapp/gov/zjj/estates/infoPlatformCmd.py

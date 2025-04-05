@@ -59,11 +59,11 @@ class SeatInfoVO:
     # 竣工查丈分摊面积
     area6: str = ""
 
-    def to_json(self):
-        return json.dumps(self, ensure_ascii=False)
+    # def to_json(self):
+    #     return json.dumps(self, ensure_ascii=False)
 
-    def __str__(self):
-        return self.to_json()
+    # def __str__(self):
+    #     return self.to_json()
 
-    def __repr__(self):
-        return self.to_json()
+    # def __repr__(self):
+    #     return self.to_json()

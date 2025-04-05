@@ -7,6 +7,7 @@ from openpyxl import Workbook
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import Select
 from bs4 import BeautifulSoup, SoupStrainer
 from selenium.webdriver.support.ui import WebDriverWait
@@ -39,6 +40,57 @@ SEAT_INFO_TABLE = '/html/body/form/div[4]/div[2]/div/div[3]/table/tbody'
 # 套房详细信息
 ROOM_DETAIL_TABLE = '//*[@id="Form1"]/div[4]/div/table/tbody'
 
+_service = None
+_driver = None
+
+def getDriver():
+    global _service
+    global _driver
+    if _service is None or _driver is None:
+        import sys
+        import os
+
+        # 尝试多个可能的路径
+        possible_paths = [
+            # 1. 如果是exe运行，获取exe所在目录
+            os.path.dirname(sys.executable) if getattr(sys, 'frozen', False) else None,
+            # 2. 当前脚本所在目录
+            os.path.dirname(os.path.abspath(__file__)),
+            # 3. 当前工作目录
+            os.getcwd()
+        ]
+
+        # 移除None值
+        possible_paths = [p for p in possible_paths if p]
+        
+        # 遍历所有可能的路径查找chromedriver.exe
+        chrome_driver_path = None
+        for path in possible_paths:
+            temp_path = os.path.join(path, 'chromedriver.exe')
+            if os.path.isfile(temp_path):
+                chrome_driver_path = temp_path
+                break
+        
+        if chrome_driver_path is None:
+            raise FileNotFoundError('无法找到chromedriver.exe，请确保它在正确的位置')
+
+        logging.info(f"chromedriver path: {chrome_driver_path}")
+        # 创建 ChromeDriver 服务对象
+        _service = Service(chrome_driver_path)
+        # 添加Chrome选项
+        chrome_options = Options()
+        # 禁用开发者工具日志输出
+        chrome_options.add_experimental_option('excludeSwitches', ['enable-logging'])
+        _driver = webdriver.Chrome(service=_service, options=chrome_options)
+    return _driver
+
+def closeDriver():
+    global _service
+    global _driver
+    if _service is not None and _driver is not None:
+        _driver.quit()
+        _service.stop()
+        _service = None
 
 def parse_table_row(td_tags) -> MainTableVO:
     """解析主表格行数据"""
@@ -62,17 +114,22 @@ def parse_table_row(td_tags) -> MainTableVO:
     
     return builder.build()
 
-def fetch_main_table_data(driver, startIndex: int = 1, 
-                            page_limit: int = -1, max_page: bool = False) -> List[MainTableVO]:
+def fetch_main_table_data(startIndex: int = 1, 
+                        page_limit: int = -1,
+                        index_limit: int = -1, 
+                        max_page: bool = False) -> List[MainTableVO]:
     """
     从列表页获取主表格数据
     Args:
-        driver: Selenium WebDriver 实例
         page_limit: 爬取页面限制
         startIndex: 开始爬取的序号
+        index_limit: 爬取序号限制
+        max_page: 是否使用最大单页页幅20/页；默认单页10条
     Returns:
         主表格数据列表
     """
+    # 创建 Chrome 浏览器实例
+    driver = getDriver()
 
     row_data = []
     try:
@@ -144,15 +201,12 @@ def fetch_main_table_data(driver, startIndex: int = 1,
                             if currect_vo.index == total_number:
                                 hasNext = False
                                 break
+                            if index_limit > 0 and len(row_data) >= index_limit:
+                                hasNext = False
+                                break
                         logging.info(f"当前行的数据：{row_data}")
                     elif th_tags:
                         # 表头行 跳过
-                        # row_data = []
-                        # for th in th_tags:
-                        #     # 去除多余的空白字符
-                        #     text = th.get_text().strip()
-                        #     row_data.append(text)
-                        # print("当前行的数据：", row_data)
                         continue    
                     else:
                         logging.warning("当前行没有 td 或 th 标签。")
@@ -174,9 +228,6 @@ def fetch_main_table_data(driver, startIndex: int = 1,
 
     except Exception as e:
         print(f"发生错误: {e}")
-    finally:
-        # 关闭浏览器
-        driver.quit()
     return row_data
 
 def fetch_seat_info(driver, saleType:str, projectName:str, seatNum:str) -> List[SeatInfoVO]:
@@ -222,6 +273,8 @@ def fetch_seat_info_list(mainTableList:List[MainTableVO]) -> int:
     # 遍历每一个项目，梳理每个项目中的套房信息
     # 并且将套房信息插入项目对象中（MainTableVO)
     
+    # 项目套房信息页面
+    driver = getDriver()
     # 统计套房信息数量
     counter = 0
     for curRow in mainTableList:
@@ -230,8 +283,6 @@ def fetch_seat_info_list(mainTableList:List[MainTableVO]) -> int:
         projectName = curRow.project_name
         projectPath = curRow.project_path
 
-        # 项目套房信息页面
-        driver = webdriver.Chrome(service=service)
         driver.get(projectPath)
         suiteInfoEntryElement = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.XPATH, SUITE_INFO_ENTRY))
@@ -257,55 +308,53 @@ def fetch_seat_info_list(mainTableList:List[MainTableVO]) -> int:
                 seatName = cur_a.get_text().strip()
                 seatPath = cur_a.get('href')
                 seatMap[seatName] = PRE_URL + seatPath
-        driver.close()
-
+        
         for seatNum, value in seatMap.items():
-            print(f"Key: {seatNum}, Value: {value}")
-            seatInfoDriver = webdriver.Chrome(service=service)
-            seatInfoDriver.get(value)
+            logging.info(f"Key: {seatNum}, Value: {value}")
+            driver.get(value)
 
             # 预售页/现售页
             # 等待新页面加载完成并确保进入预售页面
-            suitePresaleElement = WebDriverWait(seatInfoDriver, 10).until(
+            suitePresaleElement = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, SUITE_PRESALE_LAB))
             )
             suitePresaleElement.click()
             # 等待新页面加载完成    
-            WebDriverWait(seatInfoDriver, 10).until(
+            WebDriverWait(driver, 10).until(
                 EC.staleness_of(suitePresaleElement)
             )
             # 再当前页面重新找到当前处理座号
-            target_a_tag = WebDriverWait(seatInfoDriver, 10).until(
+            target_a_tag = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, f'//a[text()="{seatNum}"]'))
             )
             # 再次点击座号进入页面
             target_a_tag.click()
 
-            seatInfoList.extend(fetch_seat_info(seatInfoDriver, '预售', projectName, seatNum))
+            seatInfoList.extend(fetch_seat_info(driver, '预售', projectName, seatNum))
 
-            suiteSalingElement = WebDriverWait(seatInfoDriver, 10).until(
+            suiteSalingElement = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, SUITE_SALEING_LAB))
             )
             suiteSalingElement.click()
             # 等待新页面加载完成    
-            WebDriverWait(seatInfoDriver, 10).until(
+            WebDriverWait(driver, 10).until(
                 EC.staleness_of(suiteSalingElement)
             )
             # 再当前页面重新找到当前处理座号
-            target_a_tag = WebDriverWait(seatInfoDriver, 10).until(
+            target_a_tag = WebDriverWait(driver, 10).until(
                 EC.presence_of_element_located((By.XPATH, f'//a[text()="{seatNum}"]'))
             )
             # 再次点击座号进入页面
             target_a_tag.click()
-            seatInfoList.extend(fetch_seat_info(seatInfoDriver, '现售', projectName, seatNum))
-            seatInfoDriver.close()
+            seatInfoList.extend(fetch_seat_info(driver, '现售', projectName, seatNum))
         
         curRow.seat_info_list = seatInfoList
         counter += len(seatInfoList)
     return counter
 
-def fetch_room_detail_info(mainTableList:List[MainTableVO]) -> None:
-    roomInfoDriver = webdriver.Chrome(service=service)
+def fetch_room_detail_info(mainTableList:List[MainTableVO]) -> int:
+    roomInfoDriver = getDriver()
+    counter = 0
     for curRow in mainTableList:
         logging.info(curRow)
         for curSeatInfo in curRow.seat_info_list:
@@ -349,36 +398,33 @@ def fetch_room_detail_info(mainTableList:List[MainTableVO]) -> None:
                 curSeatInfo.area4 = rowSevenList[1].get_text().strip()
                 curSeatInfo.area5 = rowSevenList[3].get_text().strip()
                 curSeatInfo.area6 = rowSevenList[5].get_text().strip()
-    roomInfoDriver.close()            
 
+                counter += 1
+    return counter            
 
-if __name__ == '__main__':
-    # 获取当前脚本所在的目录
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # 构建 chromedriver 的路径
-    chrome_driver_path = os.path.join(script_dir, 'chromedriver.exe')
-
-    # 创建 ChromeDriver 服务对象
-    service = Service(chrome_driver_path)
-
-    # 创建 Chrome 浏览器实例
-    driver = webdriver.Chrome(service=service)
-
-    # 获取主列表数据，同时控制数据获取范围
-    mainTableList = fetch_main_table_data(driver, startIndex = 1, page_limit= 1)
-    logging.info(f"主表信息获取完毕，信息总条数：{len(mainTableList)}")
-
-    counter = fetch_seat_info_list(mainTableList)
-    logging.info(f"套房信息获取完毕，信息总条数: {counter}")
-
-    try:
-        fetch_room_detail_info(mainTableList)
-        logging.info(f"房间详情信息获取完毕")
-    except Exception as e:
-        logging.error(f"获取房间详情信息发生错误: {e}")
-        # 无论报了什么错，将已经处理好的信息进行保存
-
+def export_excel(mainTableList:List[MainTableVO], file_path:str = 'output.xlsx') -> tuple:
+    """
+    将数据导出到 Excel 文件
+    Args:
+        mainTableList: 主表信息列表
+        file_path: 导出文件路径
+    Returns:
+        tuple: 成功导出的行数和总行数
+    """
+    # 导入所需模块
+    import os
+    import time
+    
+    # 获取当前时间并格式化为文件名后缀
+    time_suffix = time.strftime('%Y%m%d_%H%M%S')
+    
+    # 分离文件名和扩展名
+    file_name, file_ext = os.path.splitext(file_path)
+    # 添加时间后缀
+    file_path = f"{file_name}_{time_suffix}{file_ext}"
+    # 转换为绝对路径
+    abs_file_path = os.path.abspath(file_path)
+    
     # 创建一个新的工作簿
     workbook = Workbook()
 
@@ -387,6 +433,7 @@ if __name__ == '__main__':
         default_sheet = workbook['Sheet']
         workbook.remove(default_sheet)
     
+    counter = 0
     for curRow in mainTableList:
         # 新建一个工作表并命名
         new_sheet_name = curRow.project_name
@@ -405,11 +452,36 @@ if __name__ == '__main__':
             curSeatInfo.isAccessibility, curSeatInfo.price, curSeatInfo.price2, 
             curSeatInfo.contractNum, curSeatInfo.area, curSeatInfo.area2, curSeatInfo.area3,
             curSeatInfo.area4, curSeatInfo.area5, curSeatInfo.area6])
+            counter += 1
     
     # 保存工作簿为 xlsx 文件
-    file_path = "output.xlsx"
-    workbook.save(file_path)
-    print(f"数据已成功写入 {file_path} 中的 {new_sheet_name} 工作表")
+    workbook.save(abs_file_path)
+    logging.info(f"数据已成功写入 {abs_file_path} 中的 {new_sheet_name} 工作表")
+    return abs_file_path, counter
+
+if __name__ == '__main__':
+    
+    # 获取主列表数据，同时控制数据获取范围
+    mainTableList = fetch_main_table_data(
+                                        startIndex = 1, 
+                                        page_limit= 1, 
+                                        index_limit= 1
+                                        )
+    logging.info(f"主表信息获取完毕，信息总条数：{len(mainTableList)}")
+
+    counter = fetch_seat_info_list(mainTableList)
+    logging.info(f"套房信息获取完毕，信息总条数: {counter}")
+
+    try:
+        fetch_room_detail_info(mainTableList)
+        logging.info(f"房间详情信息获取完毕")
+    except Exception as e:
+        logging.error(f"获取房间详情信息发生错误: {e}")
+        # 无论报了什么错，将已经处理好的信息进行保存
+        
+    outputFileName, total = export_excel(mainTableList)
+    logging.info(f"{total}条数据导出完毕，文件路径：{outputFileName}")
+
 
 
 
