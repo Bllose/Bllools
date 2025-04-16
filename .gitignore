@@ -9,6 +9,11 @@ build/
 develop-eggs/
 *.xlsx
 *.xls
+*.wav
+*.mp3
+*.mp4
+*.avi
+*.ps1
 
 # C extensions
 *.so
