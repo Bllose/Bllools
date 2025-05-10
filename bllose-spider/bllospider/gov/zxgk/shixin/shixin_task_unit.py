@@ -1,12 +1,14 @@
 from seleniumwire import webdriver
 from selenium.webdriver.common.by import By
-from selenium.webdriver.firefox.service import Service
-from selenium.webdriver.firefox.options import Options
+from selenium.webdriver.firefox.service import Service as firefoxService
+from selenium.webdriver.firefox.options import Options as firefoxOptions
+from selenium.webdriver.chrome.service import Service as chromeService
+from selenium.webdriver.chrome.options import Options as chromeOptions
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import ElementClickInterceptedException,TimeoutException
 import time
-import os
+import json
 from datetime import datetime
 import pandas as pd
 import traceback
@@ -34,14 +36,23 @@ XPATH_ID_INPUT = '//*[@id="pCardNum"]'
 XPATH_SEARCH_BUTTON = '/html/body/div[2]/div/div[2]/div[3]/form/div[4]/div[6]/button'
 # 查询失败时，提示信息xpath路径
 XPATH_SEARCH_FAILED = '/html/body/div[2]/div/div[2]/div[4]/div[1]/div/table/tbody/p'
-# 查询成功时，表格所属的xpath路径
-XPATH_SEARCH_SUCCED = '//*[@id="result-block"]'
+
 # 点击查看后，详情弹出框xpath路径
 XPATH_TABLE_DETAIL_INFO = '//*[@id="partyDetail"]'
 # 详情弹框关闭按钮xpath路径
 XPATH_DETAIL_TABLE_CLOSE_BUTTON = '/html/body/div[5]/div/div[2]/button'
 # 悬浮窗口xpath路径
 XPATH_SUBWINDOW = '//*[@id="frameImg"]'
+# 验证码错误框
+XPATH_CAPTCHA_ERROR = '/html/body/div[2]/div/div[2]/div[3]/form/div[4]/div[4]'
+# 验证码正确框
+XPATH_CAPTCHA_RIGHT = '/html/body/div[2]/div/div[2]/div[3]/form/div[4]/div[5]'
+# 查询结果根元素
+XPATH_SEARCH_RESULT_TOP = '//*[@id="result-block"]'
+# 查询结果元素 - 验证码错误或验证码已过期
+XPATH_SEARCH_RESULT_CAPTCHA_ERROR_MSG = '/html/body/div[2]/div/div[2]/div[4]/div[1]/div/table/tbody/p'
+# 查询结果元素 - 查询结果表格
+XPATH_SEARCH_RESULT_TABLE = '//*[@id="result-thead"]'
 
 # 失信平台请求地址
 SHIXIN_URL = 'https://zxgk.court.gov.cn/shixin/'
@@ -68,7 +79,7 @@ class ShixinCralwer:
         self.refresh_environment()
 
     @bConfig()
-    def refresh_environment(self, config, type: str = 'chrome'):
+    def refresh_environment(self, config, type: str = 'firefox'):
         self.cleanup()
         
         if type == 'firefox':
@@ -80,19 +91,17 @@ class ShixinCralwer:
         
     def init_chrome(self, config):
         # 设置 Chrome 浏览器选项
-        self.chrome_options = Options()
+        self.chrome_options = chromeOptions()
         # 若想在后台运行浏览器，可取消注释下面这行代码
-        # self.chrome_options.binary_location = config['cralwer']['chrome']['binary']
-        # self.chrome_options.add_argument('--enable-logging')
-        # self.chrome_options.add_argument('--v=1')
-        # self.chrome_options.set_capability('goog:loggingPrefs', {'browser': 'ALL'})
-        self.service = Service(config['cralwer']['chrome']['driver'])
-        # self.driver = webdriver.Chrome(service=self.service, options=self.chrome_options)
-        self.driver = webdriver.Chrome(service=self.service)
+        self.chrome_options.binary_location = config['cralwer']['chrome']['binary']
+        self.chrome_options.add_argument("--verbose")
+        self.chrome_options.add_argument(r"--log-path=D:\chromedriver.log")
+        self.service = chromeService(config['cralwer']['chrome']['driver'])
+        self.driver = webdriver.Chrome(service=self.service, options=self.chrome_options)
     
     def init_firefox(self, config):
         # 设置火狐浏览器选项
-        self.firefox_options = Options()
+        self.firefox_options = firefoxOptions()
         # 若想在后台运行浏览器，可取消注释下面这行代码
         # firefox_options.add_argument('-headless')
         # 指定 Firefox 二进制文件的路径
@@ -103,7 +112,7 @@ class ShixinCralwer:
         # self.firefox_options.set_capability('moz:loggingPrefs', {'browser': 'ALL'})
 
         # 指定 geckodriver 的路径
-        self.service = Service(config['cralwer']['firefox']['geckodriver'])
+        self.service = firefoxService(config['cralwer']['firefox']['geckodriver'])
 
         # 创建火狐浏览器驱动实例
         self.driver = webdriver.Firefox(service=self.service, options=self.firefox_options)
@@ -192,12 +201,12 @@ def input_clean_set(cralwer: ShixinCralwer, xpath: str, value: str = None):
     
     return current_element
 
-def get_the_latest_captcha_request(requests):
+def get_the_latest_request_suffix(requests, suffix):
     """
     从浏览器的请求记录列表中获取最新的验证码请求
     """
     for request in requests[::-1]:
-        if request.response and 'captchaNew.do' in request.url:
+        if request.response and suffix in request.url:
             return request
     return None
 
@@ -232,6 +241,128 @@ def getApiKey():
 def getApiKeyFromConfig(config):
     return config['doubao']['token']
 
+# 针对验证码请求遍历的计数器
+captcha_request_counter = 0
+# 查询结果列表请求遍历的计数器
+searchSX_request_counter = 0
+# 查询详情列表请求遍历的计数器
+disDetail_request_counter = 0
+
+SUFFIX_CAPTCHA_REQUEST  = 'captchaNew.do'
+SUFFIX_CHECKYZM_REQUEST = 'checkyzm.do'
+SUFFIX_SEARCH_REQEUST   = 'searchSX.do'
+SUFFIX_DETAIL_REQEUST   = 'disDetailNew'
+
+def analysis_set_captcha(cralwer, yzm_input):
+    """
+    识别验证码，并填入验证码
+    """
+    global captcha_request_counter
+
+    safe_counter = 0
+    # 获取当前所有请求记录
+    while True:
+        current_requests = cralwer.driver.requests
+        if captcha_request_counter < len(current_requests):
+            new_requests = current_requests[captcha_request_counter:]
+            theLatestCaptchaRequest = get_the_latest_request_suffix(new_requests, SUFFIX_CAPTCHA_REQUEST)
+            if theLatestCaptchaRequest:
+                theLatestCaptcha = get_captcha(theLatestCaptchaRequest)
+                if theLatestCaptcha:
+                    yzm_input.clear()
+                    yzm_input.send_keys(theLatestCaptcha)
+                    logging.warning(f'验证码输入成功，{theLatestCaptcha}') 
+                else:
+                    # 验证码识别失败，点击验证码图片，刷新验证码
+                    cpatcha_click(cralwer)
+            else:
+                # 有新的请求，但是没有验证码请求
+                theLatestCheckRequest = get_the_latest_request_suffix(new_requests, SUFFIX_CHECKYZM_REQUEST)
+                if theLatestCheckRequest and theLatestCheckRequest.response.status_code == 200:
+                    result = theLatestCheckRequest.response.body.decode('utf-8').rstrip('\n')
+                    if '1' == result:
+                        # 触发验证码验证接口，且为成功
+                        captcha_request_counter = len(current_requests)
+                        return
+                    elif '0' == result:
+                        # 验证码校验错误，点击验证码刷新
+                        cpatcha_click(cralwer)
+                else:
+                    # 检测接口异常，点击验证码刷新
+                    cpatcha_click(cralwer)
+            captcha_request_counter = len(current_requests)
+        else:
+            # 没有新请求
+            safe_counter += 1
+        time.sleep(SHORT_WAITING_TIME)
+        if safe_counter > 5:
+            break
+
+def cpatcha_click(cralwer):
+    captcha_img = cralwer.driver.find_element(By.XPATH, XPATH_CAPTCHA_IMG)
+    captcha_img.click()
+    time.sleep(NORMAL_WAITING_TIME)
+
+def search_button_not_success(cralwer) -> bool:
+    """
+    判断当前查询结果是否正确
+    """
+    
+    resultTopElement = cralwer.driver.find_element(By.XPATH, XPATH_SEARCH_RESULT_TOP)
+    if 'hide' in resultTopElement.get_attribute('class'):
+        # 该元素为查询结果的根元素，若当前元素处于被隐藏状态，则说明查询功能没能被触发
+        return True
+    
+    result_table_element = cralwer.driver.find_element(By.XPATH, XPATH_SEARCH_RESULT_TABLE)
+    if 'hide' in result_table_element.get_attribute('class'):
+        # 查询结果列表元素处于隐藏状态
+        return True
+
+    # RIGHT = cralwer.driver.find_element(By.XPATH, XPATH_CAPTCHA_RIGHT)
+    # ERROR = cralwer.driver.find_element(By.XPATH, XPATH_CAPTCHA_ERROR)
+    # if 'hide' in RIGHT.get_attribute('class'):
+    #     # 查询成功的标签栏处于被隐藏状态，说明没有触发验证码正确的判断
+    #     no += 1
+    # if 'hide' in ERROR.get_attribute('class'):
+    #     # 查询
+    #     ok += 1
+
+    # result_failed_info = cralwer.driver.find_elements(By.XPATH, XPATH_SEARCH_RESULT_CAPTCHA_ERROR_MSG)
+    # if len(result_failed_info) > 0:
+    #     failed_msg = result_failed_info[0].text
+    #     if '验证码错误或验证码已过期。' in failed_msg:
+    #         no += 1
+    # else:
+    #     ok += 1
+
+    return False
+
+def try_get_search_result(cralwer) -> tuple:
+    """
+    从查询接口返回的报文中获取返回信息
+    """
+    current_requests = cralwer.driver.requests
+    if searchSX_request_counter < len(current_requests):
+        new_requests = current_requests[searchSX_request_counter:]
+        theLatestSearchRequest = get_the_latest_request_suffix(new_requests, SUFFIX_SEARCH_REQEUST)
+        if theLatestSearchRequest and theLatestSearchRequest.response.status_code == 200:
+            response_body = theLatestSearchRequest.response.body
+            for key, value in theLatestSearchRequest.response.headers.items():
+                if key == 'Content-Encoding':
+                    if value == 'gzip':
+                        import zlib
+                        decompressed_body = zlib.decompress(response_body, 16 + zlib.MAX_WBITS)
+                        response_text = decompressed_body.decode('utf-8')
+                        response_json = json.loads(response_text)
+                        table_info = response_json[0]
+                        totalSize = table_info['totalSize']
+                        if totalSize == 0:
+                            return totalSize, ''
+                        else:
+                            name = table_info['result'][0]['iname']
+                            return totalSize, name
+    return -1, ''
+
 if __name__ == '__main__':
     logging.basicConfig(filename='app.log', format='%(asctime)s - %(levelname)s - %(message)s')
     # 1. excel 获取查询目标数据
@@ -255,40 +386,36 @@ if __name__ == '__main__':
         search_button = cralwer.driver.find_element(By.XPATH, XPATH_SEARCH_BUTTON)
         
         # 3.2 循环确认验证码并保障查询按钮成功执行
-        safe_counter = 0
-        requestCounter = 0
-        # 获取当前所有请求记录
-        while True:
-            current_requests = cralwer.driver.requests
-            if requestCounter < len(current_requests):
-                new_requests = current_requests[requestCounter:]
-                theLatestCaptchaRequest = get_the_latest_captcha_request(new_requests)
-                if theLatestCaptchaRequest:
-                    theLatestCaptcha = get_captcha(theLatestCaptchaRequest)
-                    if theLatestCaptcha:
-                        yzm_input.clear()
-                        yzm_input.send_keys(theLatestCaptcha)
-                        logging.warning(f'验证码输入成功，{theLatestCaptcha}') 
-                    else:
-                        # 验证码识别失败，点击验证码图片，刷新验证码
-                        captcha_img = cralwer.driver.find_element(By.XPATH, XPATH_CAPTCHA_IMG)
-                        captcha_img.click()
-                        time.sleep(NORMAL_WAITING_TIME)
-                else:
-                    # 有新的请求，但是没有验证码请求
-                    safe_counter += 1
-                requestCounter = len(current_requests)
-            else:
-                # 没有新请求
-                safe_counter += 1
-            time.sleep(SHORT_WAITING_TIME)
-            if safe_counter > 10:
+        error_counter = 0
+        while True and error_counter < 3:
+            analysis_set_captcha(cralwer, yzm_input)
+            # 点击搜索按钮
+            # while search_button_not_success(cralwer):
+            # 如果查询失败则反复重试
+            search_button.click()
+            time.sleep(NORMAL_WAITING_TIME)
+            # 检查查询结果请求链接
+            total, nameCur = try_get_search_result(cralwer)
+            if total == 0:
+                # 查询不到结果，当前人不存在低消限制记录
+                print(f'{name}\t不存在失信记录')
                 break
-        # 点击搜索按钮
-        search_button.click()
-        time.sleep(NORMAL_WAITING_TIME)
+            elif total > 0:
+                # 查询到结果，开始详情查询逻辑
+                if name == nameCur:
+                    print(f'{name}\t存在{total}条失信记录')
+                    break
+                else:
+                    logging.info(f'{name} -> {nameCur}')
+                    pass
+                
+            elif total == -1:
+                # 查询异常结束，额外处理
+                error_counter += 1
+        if error_counter >= 3:
+            print(f'{name} 查询异常')
 
-        print('DONE!')                    
+    print('DONE!')                    
     
     
     # 3.2.1 
