@@ -20,8 +20,8 @@ email_sender_list = analysis_email_senders(auto_email_info_group)
 RETRY_MAX_TIMES = 3
 console = Console()
 
-compress_path = r'D:\repository\python_package\simple'
-output_zip_path = r'D:\repository\python_package\simple'
+compress_path = r'D:\temp\installer'
+output_zip_path = r'D:\temp\installer'
 zip_file_list = compress_folder(compress_path, output_zip_path)
 
 counter = 0
